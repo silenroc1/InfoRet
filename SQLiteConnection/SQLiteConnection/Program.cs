@@ -11,11 +11,14 @@ namespace SQLite
     class SQLiteConnecter
     {
 
+        static int db_size;
+
         static void Main(string[] args)
         {
 
 
             SQLiteConnection m_dbConnection;
+
             SQLiteConnection.CreateFile("autompg.sqlite");
             m_dbConnection = new SQLiteConnection("Data Source=autompg.sqlite;Version=3;");
             m_dbConnection.Open();
@@ -30,9 +33,25 @@ namespace SQLite
 
                 command = new SQLiteCommand("select * from autompg order by cylinders desc", m_dbConnection);
 
+                db_size = 0;
                 SQLiteDataReader reader = command.ExecuteReader();
                 while (reader.Read())
-                    Console.WriteLine("Brand: " + reader["brand"] + "\tCylinder: " + reader["cylinders"]); 
+                {
+                    db_size++;
+                    //Console.WriteLine("Brand: " + reader["brand"] + "\tCylinder: " + reader["cylinders"]);
+                }
+
+
+                Console.WriteLine("IDF(renault): " + IDF("brand","renault",m_dbConnection));
+                Console.WriteLine("IDF(buick): " + IDF("brand", "buick", m_dbConnection));
+                Console.WriteLine("IDF(chevrolet): " + IDF("brand", "chevrolet", m_dbConnection));
+                Console.WriteLine("IDF(amc): " + IDF("brand", "amc", m_dbConnection));
+                Console.WriteLine("IDF(plymouth): " + IDF("brand", "plymouth", m_dbConnection));
+                Console.WriteLine("IDF(toyota): " + IDF("brand", "toyota", m_dbConnection));
+                Console.WriteLine("IDF(ford): " + IDF("brand", "ford", m_dbConnection));
+                Console.WriteLine("IDF(volkswagen): " + IDF("brand", "volkswagen", m_dbConnection));
+
+                
 
             }
 
@@ -77,5 +96,27 @@ namespace SQLite
             */
             Console.Read();
         }
+
+
+        private static double IDF(string category, string value, SQLiteConnection db)
+        {
+            string q = "select " + category + " from autompg where " + category + "=\'" + value + "\'";
+            SQLiteCommand command = new SQLiteCommand(q, db);
+            SQLiteDataReader reader = command.ExecuteReader();
+            int freq = 0;
+
+            // tel hoeveel matches
+            while (reader.Read()) { freq++;};
+            
+            return Math.Log10(db_size / freq);
+        }
+
+        private static double IDF(string category, double value, SQLiteConnection db)
+        {
+
+            return 0;
+        }
+
+
     }
 }
