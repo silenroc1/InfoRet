@@ -38,18 +38,19 @@ namespace SQLite
                 while (reader.Read())
                 {
                     db_size++;
-                    //Console.WriteLine("Brand: " + reader["brand"] + "\tCylinder: " + reader["cylinders"]);
+                    Console.WriteLine("Brand: " + reader["brand"] + "\tCylinder: " + reader["cylinders"]);
                 }
 
-
-                Console.WriteLine("IDF(renault): " + IDF("brand","renault",m_dbConnection));
-                Console.WriteLine("IDF(buick): " + IDF("brand", "buick", m_dbConnection));
-                Console.WriteLine("IDF(chevrolet): " + IDF("brand", "chevrolet", m_dbConnection));
-                Console.WriteLine("IDF(amc): " + IDF("brand", "amc", m_dbConnection));
-                Console.WriteLine("IDF(plymouth): " + IDF("brand", "plymouth", m_dbConnection));
-                Console.WriteLine("IDF(toyota): " + IDF("brand", "toyota", m_dbConnection));
-                Console.WriteLine("IDF(ford): " + IDF("brand", "ford", m_dbConnection));
-                Console.WriteLine("IDF(volkswagen): " + IDF("brand", "volkswagen", m_dbConnection));
+                Console.WriteLine("IDF(8 cylinders): " + IDF("cylinders", 8, m_dbConnection));
+                Console.WriteLine("IDF(7 cylinders): " + IDF("cylinders", 7, m_dbConnection));
+                Console.WriteLine("IDF(6 cylinders): " + IDF("cylinders",6,m_dbConnection));
+                Console.WriteLine("IDF(5 cylinders): " + IDF("cylinders", 5, m_dbConnection));
+                Console.WriteLine("IDF(4 cylinders): " + IDF("cylinders", 4, m_dbConnection));
+                Console.WriteLine("IDF(3 cylinders): " + IDF("cylinders", 3, m_dbConnection));
+                Console.WriteLine("IDF(2 cylinders): " + IDF("cylinders", 2, m_dbConnection));
+                Console.WriteLine("IDF(1 cylinders): " + IDF("cylinders", 1, m_dbConnection));
+                
+                 
 
                 
 
@@ -113,8 +114,27 @@ namespace SQLite
 
         private static double IDF(string category, double value, SQLiteConnection db)
         {
+            double h = ComputeH(category, db);
 
-            return 0;
+            double freq = 0;
+            string q = "select " + category + " from autompg";
+            SQLiteCommand command = new SQLiteCommand(q, db);
+            SQLiteDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                freq += Math.Pow(Math.E, -0.5 * Math.Pow((Convert.ToDouble(reader[category]) - value) / h, 2));
+
+            }
+
+            return Math.Log10(db_size / freq);
+        }
+
+
+        private static double ComputeH(string category, SQLiteConnection db)
+        {
+            return 3.5;
+
         }
 
 
