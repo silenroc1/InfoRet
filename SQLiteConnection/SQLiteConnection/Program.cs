@@ -10,17 +10,21 @@ namespace SQLite
 {
     class SQLiteConnecter
     {
+        static SQLiteConnection m_dbConnection;
 
         static int db_size;
         static ISet<string> brand_values;
         static ISet<string> model_values;
         static ISet<string> type_values;
 
+        static string[] num_columns = { "mpg", "cylinders", "displacement", "weight", "acceleration", "model_year", "origin" };
+        static string[] cat_columns = { "brand", "model", "type" };
+
         static void Main(string[] args)
         {
 
             // inladen van autompg
-            SQLiteConnection m_dbConnection;
+            
 
             SQLiteConnection.CreateFile("autompg.sqlite");
             m_dbConnection = new SQLiteConnection("Data Source=autompg.sqlite;Version=3;");
@@ -39,12 +43,12 @@ namespace SQLite
             meta_db = new SQLiteConnection("Data Source=meta_db.sqlite;Version=3;");
             meta_db.Open();
 
-            s = "create table idf_cat (category varchar(20), value varchar(20), score double)";
+            s = "create table idf_cat (category varchar(20), value varchar(20), score real)";
             SQLiteCommand meta_dbCommand = new SQLiteCommand(s, meta_db);
             meta_dbCommand.ExecuteNonQuery();
             
 
-            s = "create table idf_num (category varchar(20), value double, score double)";
+            s = "create table idf_num (category varchar(20), value real, score real)";
             meta_dbCommand = new SQLiteCommand(s, meta_db);
             meta_dbCommand.ExecuteNonQuery();
             
@@ -130,7 +134,21 @@ namespace SQLite
 
         private static void FillIdf_num(SQLiteConnection meta_db)
         {
-            throw new NotImplementedException();
+            SQLiteCommand query_command;
+            SQLiteCommand update_command;
+            SQLiteDataReader reader;
+            foreach (string s in num_columns)
+            {
+                query_command = new SQLiteCommand("select distinct " + s + " from autompg", m_dbConnection);
+                reader = query_command.ExecuteReader();
+                while (reader.Read())
+                {
+                    update_command =
+                        new SQLiteCommand("insert into idf_num values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (double)reader[s], m_dbConnection));
+                    update_command.ExecuteNonQuery();
+                }
+
+            }
             // omdat er bij numerieke velden een oneindig aantal verschillende waarden zijn, 
             // is het niet mogelijk de hele idf-table al te vullen.
             // een goed alternatief lijkt me om de table te vullen met enkel de waarden die
@@ -144,9 +162,23 @@ namespace SQLite
 
         private static void FillIdf_cat(SQLiteConnection meta_db)
         {
-            
+            SQLiteCommand query_command;
+            SQLiteCommand update_command;
+            SQLiteDataReader reader;
+            foreach (string s in cat_columns)
+            {
+                query_command = new SQLiteCommand("select distinct " + s + " from autompg", m_dbConnection);
+                reader = query_command.ExecuteReader();
+                while (reader.Read())
+                {
+                    update_command = 
+                        new SQLiteCommand("insert into idf_cat values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (string)reader[s], m_dbConnection));
+                    update_command.ExecuteNonQuery();
+                }
 
-            throw new NotImplementedException();
+            }
+
+           
 
             // voor iedere kolom
             // voor iedere verschillende waarde 
