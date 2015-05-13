@@ -205,8 +205,25 @@ namespace SQLite
 
         private static double ComputeH(string category, SQLiteConnection db)
         {
-            return 3.5;
+            double sum = 0;
+            double mean = 0;
+            
+            SQLiteCommand command = new SQLiteCommand("select " + category + " from autompg", db);
+            SQLiteDataReader reader = command.ExecuteReader();
+            while (reader.Read()) {
+                mean += (double)reader[category];
+            }
+            mean = mean / db_size;
 
+            while (reader.Read()) {
+                double x = (double)reader[category];
+                double y = x - mean;
+                sum += y * y;
+            }
+
+            double sigma = Math.Sqrt((1/db_size) * sum);
+            double h = 1.06 * sigma * Math.Pow(db_size, -0.2);
+            return h;
         }
 
 
