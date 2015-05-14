@@ -12,6 +12,9 @@ namespace SQLite
     {
         static SQLiteConnection m_dbConnection;
 
+        static StreamWriter str = new StreamWriter("meta_dbQuerys.txt");
+        
+        
         static int db_size;
         static ISet<string> brand_values;
         static ISet<string> model_values;
@@ -22,7 +25,7 @@ namespace SQLite
 
         static void Main(string[] args)
         {
-
+            
             // inladen van autompg
             
 
@@ -43,14 +46,9 @@ namespace SQLite
             meta_db = new SQLiteConnection("Data Source=meta_db.sqlite;Version=3;");
             meta_db.Open();
 
-            s = "create table idf_cat (category varchar(20), value varchar(20), score real)";
-            SQLiteCommand meta_dbCommand = new SQLiteCommand(s, meta_db);
-            meta_dbCommand.ExecuteNonQuery();
-            
+            AddQuery("create table idf_cat (category varchar(20), value varchar(20), score real)");
 
-            s = "create table idf_num (category varchar(20), value real, score real)";
-            meta_dbCommand = new SQLiteCommand(s, meta_db);
-            meta_dbCommand.ExecuteNonQuery();
+            AddQuery("create table idf_num (category varchar(20), value real, score real)");
             
 
             try
@@ -135,7 +133,7 @@ namespace SQLite
         private static void FillIdf_num(SQLiteConnection meta_db)
         {
             SQLiteCommand query_command;
-            SQLiteCommand update_command;
+            //SQLiteCommand update_command;
             SQLiteDataReader reader;
             foreach (string s in num_columns)
             {
@@ -143,9 +141,8 @@ namespace SQLite
                 reader = query_command.ExecuteReader();
                 while (reader.Read())
                 {
-                    update_command =
-                        new SQLiteCommand("insert into idf_num values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (double)reader[s], m_dbConnection));
-                    update_command.ExecuteNonQuery();
+                    AddQuery("insert into idf_num values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (double)reader[s], m_dbConnection));
+                    
                 }
 
             }
@@ -160,6 +157,13 @@ namespace SQLite
             // store de waarde in de db
         }
 
+        private static void AddQuery(string command)
+        {
+            str.Write(command + ";\n");
+            str.Flush();
+
+        }
+
         private static void FillIdf_cat(SQLiteConnection meta_db)
         {
             SQLiteCommand query_command;
@@ -171,9 +175,8 @@ namespace SQLite
                 reader = query_command.ExecuteReader();
                 while (reader.Read())
                 {
-                    update_command = 
-                        new SQLiteCommand("insert into idf_cat values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (string)reader[s], m_dbConnection));
-                    update_command.ExecuteNonQuery();
+                    AddQuery("insert into idf_cat values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (string)reader[s], m_dbConnection));
+                    
                 }
 
             }
