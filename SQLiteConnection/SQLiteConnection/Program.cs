@@ -167,7 +167,7 @@ namespace SQLite
         private static void FillIdf_cat(SQLiteConnection meta_db)
         {
             SQLiteCommand query_command;
-            SQLiteCommand update_command;
+            //SQLiteCommand update_command;
             SQLiteDataReader reader;
             foreach (string s in cat_columns)
             {
