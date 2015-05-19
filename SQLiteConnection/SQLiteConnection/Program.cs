@@ -11,11 +11,14 @@ namespace SQLite
     class SQLiteConnecter
     {
         static SQLiteConnection m_dbConnection;
+        static SQLiteConnection meta_db;
 
         static StreamWriter str = new StreamWriter("meta_dbQuerys.txt");
         
         
         static int db_size;
+
+        // zijn deze drie echt nodig?
         static ISet<string> brand_values;
         static ISet<string> model_values;
         static ISet<string> type_values;
@@ -25,10 +28,70 @@ namespace SQLite
 
         static void Main(string[] args)
         {
+            // open de van autompg-db
+            LoadAutompg();
             
-            // inladen van autompg
+            // Open de meta_database
+            OpenMeta_db();
+            
+            // parse de workload naar een dictionary<Entry(category,value),hoeveelheid>
+            Dictionary<Entry,int> queryFrequency = ParseDieShit();
+
+            /*
+            foreach (KeyValuePair<Entry, int> p in queryFrequency)
+            {
+                str.WriteLine(p.Key.category + " " + p.Key.value + ": " + p.Value);
+                str.Flush();
+            }*/
+
+
+
+                     
+                
+                 
+
+
+            if(meta_db != null) meta_db.Close();
+            if(m_dbConnection != null) m_dbConnection.Close();
+            Console.Read();
+        }
+
+        private static void OpenMeta_db()
+        {
+            
+            SQLiteConnection.CreateFile("meta_db.sqlite");
+            meta_db = new SQLiteConnection("Data Source=meta_db.sqlite;Version=3;");
+            meta_db.Open();
+
+            AddQuery("create table idf_cat (category varchar(20), value varchar(20), score real)");
+
+            AddQuery("create table idf_num (category varchar(20), value real, score real)");
             
 
+            
+            SQLiteCommand command = new SQLiteCommand("select * from autompg order by brand desc", m_dbConnection);
+
+            db_size = 0;
+            SQLiteDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                db_size++;
+
+                // zijn deze drie echt nodig?
+                brand_values.Add((string)reader["brand"]);
+                model_values.Add((string)reader["model"]);
+                type_values.Add((string)reader["type"]);
+
+            }
+
+            FillIdf_cat(meta_db);
+
+            FillIdf_num(meta_db);
+            
+        }
+
+        private static void LoadAutompg()
+        {
             SQLiteConnection.CreateFile("autompg.sqlite");
             m_dbConnection = new SQLiteConnection("Data Source=autompg.sqlite;Version=3;");
             m_dbConnection.Open();
@@ -39,95 +102,6 @@ namespace SQLite
             SQLiteCommand command = new SQLiteCommand(s, m_dbConnection);
             command.ExecuteNonQuery();
 
-
-            // meta-db voor idf en tf
-            SQLiteConnection meta_db;
-            SQLiteConnection.CreateFile("meta_db.sqlite");
-            meta_db = new SQLiteConnection("Data Source=meta_db.sqlite;Version=3;");
-            meta_db.Open();
-
-            AddQuery("create table idf_cat (category varchar(20), value varchar(20), score real)");
-
-            AddQuery("create table idf_num (category varchar(20), value real, score real)");
-            
-
-            try
-            {
-                
-
-                command = new SQLiteCommand("select * from autompg order by brand desc", m_dbConnection);
-
-                db_size = 0;
-                SQLiteDataReader reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    db_size++;
-                    brand_values.Add((string)reader["brand"]);
-                    model_values.Add((string)reader["model"]);
-                    type_values.Add((string)reader["type"]);
-
-                }
-
-                //FillIdf_cat(meta_db);
-
-                //FillIdf_num(meta_db);
-
-                /*Console.WriteLine("IDF(8 cylinders): " + IDF("cylinders", 8, m_dbConnection));
-                Console.WriteLine("IDF(7 cylinders): " + IDF("cylinders", 7, m_dbConnection));
-                Console.WriteLine("IDF(6 cylinders): " + IDF("cylinders",6,m_dbConnection));
-                Console.WriteLine("IDF(5 cylinders): " + IDF("cylinders", 5, m_dbConnection));
-                Console.WriteLine("IDF(4 cylinders): " + IDF("cylinders", 4, m_dbConnection));
-                Console.WriteLine("IDF(3 cylinders): " + IDF("cylinders", 3, m_dbConnection));
-                Console.WriteLine("IDF(2 cylinders): " + IDF("cylinders", 2, m_dbConnection));
-                Console.WriteLine("IDF(1 cylinders): " + IDF("cylinders", 1, m_dbConnection));
-                */
-                 
-
-                
-
-            }
-
-            finally
-            {
-                meta_db.Close();
-                m_dbConnection.Close();
-            }
-
-
-
-            /*
-            SQLiteConnection m_dbConnection;
-            SQLiteConnection.CreateFile("MyDatabase.sqlite");
-            m_dbConnection = new SQLiteConnection("Data Source=MyDatabase.sqlite;Version=3;");
-            m_dbConnection.Open();
-
-            string sql = "create table highscores (name varchar(20), score int)";
-            SQLiteCommand command = new SQLiteCommand(sql, m_dbConnection);
-
-            command.ExecuteNonQuery();
-
-            sql = "insert into highscores (name, score) values ('Me', 3000)";
-            SQLiteCommand command2 = new SQLiteCommand(sql, m_dbConnection);
-            command2.ExecuteNonQuery();
-            sql = "insert into highscores (name, score) values ('Myself', 6000)";
-            command2 = new SQLiteCommand(sql, m_dbConnection);
-            command2.ExecuteNonQuery();
-            sql = "insert into highscores (name, score) values ('And I', 9001)";
-            command2 = new SQLiteCommand(sql, m_dbConnection);
-            command2.ExecuteNonQuery();
-
-            string sql2 = "select * from highscores order by score desc";
-            SQLiteCommand command3 = new SQLiteCommand(sql2, m_dbConnection);
-
-            SQLiteDataReader reader = command3.ExecuteReader();
-
-            string sql3 = "select * from highscores order by score desc";
-            SQLiteCommand command4 = new SQLiteCommand(sql3, m_dbConnection);
-            SQLiteDataReader reader2 = command4.ExecuteReader();
-            while (reader2.Read())
-                Console.WriteLine("Name: " + reader2["name"] + "\tScore: " + reader2["score"]);
-            */
-            Console.Read();
         }
 
         private static void FillIdf_num(SQLiteConnection meta_db)
@@ -293,48 +267,54 @@ namespace SQLite
 
 
         
-        private Dictionary<Entry,int> ParseDieShit()
+        private static Dictionary<Entry,int> ParseDieShit()
         {
             Dictionary<Entry,int> workload = new Dictionary<Entry,int>();
 
-            StreamReader str = new StreamReader("workload.txt");
-            str.ReadLine(); str.ReadLine(); // eerste twee regels hebben geen info
+            StreamReader streamreader = new StreamReader("workload.txt");
+            streamreader.ReadLine(); streamreader.ReadLine(); // eerste twee regels hebben geen info
 
             int times;
             string[] input;
-            while (!str.EndOfStream)
+            while (!streamreader.EndOfStream)
             {
-                input = str.ReadLine().Split();
+                input = streamreader.ReadLine().Split();
+                //Console.WriteLine(input[0]);
                 times = Convert.ToInt32(input[0]);
-                //ISet<Entry> gevraagd = new HashSet<Entry>();
+                
                 for (int i = 0; i < input.Length; i++)
                 {
                     if (num_columns.Contains(input[i]) || cat_columns.Contains(input[i]))
                     {
                         if (input[i + 1].Equals("="))
                         {
-                            TryAdd(workload, new Entry(input[i], input[1 + 2]), times);
+                            TryAdd(workload, new Entry(input[i], input[i + 2]), times);
 
-                            i += 2; // loop verder langs wat je al hebt gezien
+                            //i += 2; // loop verder langs wat je al hebt gezien
                         }
-                        else if (input[i+1].Equals("IN"))
+                        else if (input[i + 1].Equals("IN"))
                         {
-                            foreach(string s in input[i+2].Split(new char[]{'(',',',')'}))
+                            Console.WriteLine(input[i + 2] + ": leidt tot:");
+                            foreach (string s in input[i + 2].Split(new char[] { '(', ',', ')' }))
+                            {
+                                Console.Write(s + " ");
                                 TryAdd(workload, new Entry(input[i], s), times);
+                            }
+                            Console.WriteLine();                         //i += 2; // loop verder
 
-                            i += 2; // loop verder
-                             
                         }
                     }
-                    
+
 
                 }
             }
+            
+            
 
             return workload;
         }
 
-        private void TryAdd(Dictionary<Entry, int> workload, Entry entry, int times) {
+        private static void TryAdd(Dictionary<Entry, int> workload, Entry entry, int times) {
             if (workload.ContainsKey(entry))
                 workload[entry] += times;
             else
@@ -348,8 +328,9 @@ namespace SQLite
 
     public struct Entry
     {
-        public string category;
-        public string value;
+        // alles in kleine letters
+        public string category; // zonder quotes
+        public string value; // met quotes: 'volkswagen'
         public Entry(string category, string value)
         {
             this.category = category;
