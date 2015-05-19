@@ -291,5 +291,70 @@ namespace SQLite
             return intersection/union;
         }
 
+
+        
+        private Dictionary<Entry,int> ParseDieShit()
+        {
+            Dictionary<Entry,int> workload = new Dictionary<Entry,int>();
+
+            StreamReader str = new StreamReader("workload.txt");
+            str.ReadLine(); str.ReadLine(); // eerste twee regels hebben geen info
+
+            int times;
+            string[] input;
+            while (!str.EndOfStream)
+            {
+                input = str.ReadLine().Split();
+                times = Convert.ToInt32(input[0]);
+                //ISet<Entry> gevraagd = new HashSet<Entry>();
+                for (int i = 0; i < input.Length; i++)
+                {
+                    if (num_columns.Contains(input[i]) || cat_columns.Contains(input[i]))
+                    {
+                        if (input[i + 1].Equals("="))
+                        {
+                            TryAdd(workload, new Entry(input[i], input[1 + 2]), times);
+
+                            i += 2; // loop verder langs wat je al hebt gezien
+                        }
+                        else if (input[i+1].Equals("IN"))
+                        {
+                            foreach(string s in input[i+2].Split(new char[]{'(',',',')'}))
+                                TryAdd(workload, new Entry(input[i], s), times);
+
+                            i += 2; // loop verder
+                             
+                        }
+                    }
+                    
+
+                }
+            }
+
+            return workload;
+        }
+
+        private void TryAdd(Dictionary<Entry, int> workload, Entry entry, int times) {
+            if (workload.ContainsKey(entry))
+                workload[entry] += times;
+            else
+                workload.Add(entry, times);
+            
+        }
+
+    }
+
+    
+
+    public struct Entry
+    {
+        public string category;
+        public string value;
+        public Entry(string category, string value)
+        {
+            this.category = category;
+            this.value = value;
+        }
+
     }
 }
