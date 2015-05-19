@@ -261,6 +261,14 @@ namespace SQLite
             return h;
         }
 
+        private static int ComputeRQFMax() {
+            return 0;
+        }
+
+        private static double QF() {
+            //deel de query freq door RQFMax
+            return 0;
+        }
 
         private static double Jaccard(HashSet<string> t, HashSet<string> q){
             int intersection = 0;
