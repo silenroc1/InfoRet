@@ -262,5 +262,26 @@ namespace SQLite
         }
 
 
+        private static double Jaccard(HashSet<string> t, HashSet<string> q){
+            int intersection = 0;
+            int union = 0;
+            //make sure t is the smaller one
+            if(t.Count > q.Count){
+                HashSet<string> temp = t;
+                t = q;
+                q = temp;
+            }
+
+            foreach(string s in t){
+                if(q.Contains(s)){
+                    intersection++;
+                }
+            }
+
+            union = t.Count + q.Count - intersection;
+
+            return intersection/union;
+        }
+
     }
 }
