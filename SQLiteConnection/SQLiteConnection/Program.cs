@@ -35,14 +35,9 @@ namespace SQLite
             OpenMeta_db();
             
             // parse de workload naar een dictionary<Entry(category,value),hoeveelheid>
-            Dictionary<Entry,int> queryFrequency = ParseDieShit();
+            ParseWorkload();
 
-            /*
-            foreach (KeyValuePair<Entry, int> p in queryFrequency)
-            {
-                str.WriteLine(p.Key.category + " " + p.Key.value + ": " + p.Value);
-                str.Flush();
-            }*/
+           
 
 
 
@@ -267,7 +262,7 @@ namespace SQLite
 
 
         
-        private static Dictionary<Entry,int> ParseDieShit()
+        private static void ParseWorkload()
         {
             Dictionary<Entry,int> workload = new Dictionary<Entry,int>();
 
@@ -279,7 +274,7 @@ namespace SQLite
             while (!streamreader.EndOfStream)
             {
                 input = streamreader.ReadLine().Split();
-                //Console.WriteLine(input[0]);
+                
                 times = Convert.ToInt32(input[0]);
                 
                 for (int i = 0; i < input.Length; i++)
@@ -310,8 +305,17 @@ namespace SQLite
             }
             
             
+            // plaats in meta_db
+            AddQuery("create table query-frequency (category varchar(20), value varchar(20), score real, glob_import real)");
+            foreach (KeyValuePair<Entry, int> p in workload)
+                AddQuery("insert into query-frequency (" + p.Key.category + "," + p.Key.value + "," + p.Value + ")");
 
-            return workload;
+            // print workload voor debugging
+            foreach (KeyValuePair<Entry, int> p in workload)
+            {
+                str.WriteLine(p.Key.category + " " + p.Key.value + ": " + p.Value);
+                str.Flush();
+            }
         }
 
         private static void TryAdd(Dictionary<Entry, int> workload, Entry entry, int times) {
