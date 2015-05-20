@@ -7,7 +7,7 @@
     <ProjectGuid>{562A0952-248C-455C-B5CC-058DE89E936A}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SQLiteConnection</RootNamespace>
+    <RootNamespace>InformationRetrieval</RootNamespace>
     <AssemblyName>SQLiteConnection</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -44,8 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="QueryProcessor.cs" />
+    <Compile Include="Preprocessor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -18,10 +18,11 @@ namespace InformationRetrieval
         
         static int db_size;
 
-        // zijn deze drie echt nodig?
-        static ISet<string> brand_values;
-        static ISet<string> model_values;
-        static ISet<string> type_values;
+        /* zijn deze drie echt nodig?
+        // static ISet<string> brand_values = null;
+        // static ISet<string> model_values = null;
+        // static ISet<string> type_values = null;
+        */
 
         static string[] num_columns = { "mpg", "cylinders", "displacement", "weight", "acceleration", "model_year", "origin" };
         static string[] cat_columns = { "brand", "model", "type" };
@@ -33,18 +34,13 @@ namespace InformationRetrieval
             
             // Open de meta_database
             OpenMeta_db();
-            
-            // parse de workload naar een dictionary<Entry(category,value),hoeveelheid>
+
+            // vull idf-tables
+            FillIdf_cat(meta_db);
+            FillIdf_num(meta_db);
+
+            // parse de workload en plaats in db
             ParseWorkload();
-
-           
-
-
-
-                     
-                
-                 
-
 
             if(meta_db != null) meta_db.Close();
             if(m_dbConnection != null) m_dbConnection.Close();
@@ -58,13 +54,13 @@ namespace InformationRetrieval
             meta_db = new SQLiteConnection("Data Source=meta_db.sqlite;Version=3;");
             meta_db.Open();
 
-            AddQuery("create table idf_cat (category varchar(20), value varchar(20), score real)");
+            
 
             AddQuery("create table idf_num (category varchar(20), value real, score real)");
             
 
             
-            SQLiteCommand command = new SQLiteCommand("select * from autompg order by brand desc", m_dbConnection);
+            SQLiteCommand command = new SQLiteCommand("select * from autompg", m_dbConnection);
 
             db_size = 0;
             SQLiteDataReader reader = command.ExecuteReader();
@@ -73,34 +69,33 @@ namespace InformationRetrieval
                 db_size++;
 
                 // zijn deze drie echt nodig?
-                brand_values.Add((string)reader["brand"]);
-                model_values.Add((string)reader["model"]);
-                type_values.Add((string)reader["type"]);
+                //brand_values.Add((string)reader["brand"]);
+                //model_values.Add((string)reader["model"]);
+                //type_values.Add((string)reader["type"]);
 
             }
 
-            FillIdf_cat(meta_db);
-
-            FillIdf_num(meta_db);
+           
             
         }
 
         private static void LoadAutompg()
         {
+            // open de database connectie
             SQLiteConnection.CreateFile("autompg.sqlite");
             m_dbConnection = new SQLiteConnection("Data Source=autompg.sqlite;Version=3;");
             m_dbConnection.Open();
 
-            string s;
+            // plaats de hele gegeven database in autompg.sqlite
             StreamReader str = new StreamReader("autompg.sql");
-            s = str.ReadToEnd();
-            SQLiteCommand command = new SQLiteCommand(s, m_dbConnection);
+            SQLiteCommand command = new SQLiteCommand(str.ReadToEnd(), m_dbConnection);
             command.ExecuteNonQuery();
-
         }
 
         private static void FillIdf_num(SQLiteConnection meta_db)
         {
+            
+
             SQLiteCommand query_command;
             //SQLiteCommand update_command;
             SQLiteDataReader reader;
@@ -126,15 +121,10 @@ namespace InformationRetrieval
             // store de waarde in de db
         }
 
-        private static void AddQuery(string command)
-        {
-            str.Write(command + ";\n");
-            str.Flush();
-
-        }
-
         private static void FillIdf_cat(SQLiteConnection meta_db)
         {
+            AddQuery("create table idf_cat (category varchar(20), value varchar(20), score real)");
+
             SQLiteCommand query_command;
             //SQLiteCommand update_command;
             SQLiteDataReader reader;
@@ -274,29 +264,36 @@ namespace InformationRetrieval
             while (!streamreader.EndOfStream)
             {
                 input = streamreader.ReadLine().Split();
-                
-                times = Convert.ToInt32(input[0]);
-                
-                for (int i = 0; i < input.Length; i++)
-                {
-                    if (num_columns.Contains(input[i]) || cat_columns.Contains(input[i]))
+
+                if (input[0] != "") { // aan het eind staan lege regels, vandaar deze check
+                    times = Convert.ToInt32(input[0]);
+
+                    for (int i = 0; i < input.Length; i++)
                     {
-                        if (input[i + 1].Equals("="))
+                        if (num_columns.Contains(input[i]) || cat_columns.Contains(input[i]))
                         {
-                            TryAdd(workload, new Entry(input[i], input[i + 2]), times);
-
-                            //i += 2; // loop verder langs wat je al hebt gezien
-                        }
-                        else if (input[i + 1].Equals("IN"))
-                        {
-                            Console.WriteLine(input[i + 2] + ": leidt tot:");
-                            foreach (string s in input[i + 2].Split(new char[] { '(', ',', ')' }))
+                            if (input[i + 1].Equals("="))
                             {
-                                Console.Write(s + " ");
-                                TryAdd(workload, new Entry(input[i], s), times);
-                            }
-                            Console.WriteLine();                         //i += 2; // loop verder
+                                // randgeval voor de station wagon
+                                if (input[i + 2].EndsWith("station")) input[i + 2] += " " + input[i + 3];
+                                TryAdd(workload, new Entry(input[i], input[i + 2]), times);
 
+                                //i += 2; // loop verder langs wat je al hebt gezien
+                            }
+                            else if (input[i + 1].Equals("IN"))
+                            {
+                                // randgeval voor de station wagon
+
+                                if (input[i + 2].EndsWith("station")) input[i + 2] += " " + input[i + 3];
+                                Console.Write(input[i + 2] + "leidt tot:");
+                                foreach (string s in input[i + 2].Split(new char[] { '(', ',', ')' }))
+                                {
+                                    Console.Write(s + " ");
+                                    TryAdd(workload, new Entry(input[i], s), times);
+                                }
+                                Console.WriteLine();                         //i += 2; // loop verder
+
+                            }
                         }
                     }
 
@@ -326,9 +323,16 @@ namespace InformationRetrieval
             
         }
 
+        private static void AddQuery(string command)
+        {
+            str.Write(command + ";\n");
+            str.Flush();
+
+        }    
+
     }
 
-    
+   
 
     public struct Entry
     {

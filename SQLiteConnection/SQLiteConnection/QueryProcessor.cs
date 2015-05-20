@@ -8,5 +8,17 @@ namespace InformationRetrieval
 {
     class QueryHandler
     {
+
+        public static void Main()
+        {
+            string query = "";
+            int k = 10;
+
+            ISet<string> topKbuffer = new HashSet<string>();
+
+
+
+
+        }
     }
 }
