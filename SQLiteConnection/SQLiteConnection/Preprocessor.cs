@@ -29,11 +29,17 @@ namespace InformationRetrieval
 
         static void Main(string[] args)
         {
+            
             // open de van autompg-db
             LoadAutompg();
             
             // Open de meta_database
             OpenMeta_db();
+
+            // parse de workload naar een dictionary<Entry(category,value),hoeveelheid>
+            //ParseWorkload();
+            
+
 
             // vull idf-tables
             FillIdf_cat(meta_db);
@@ -69,9 +75,12 @@ namespace InformationRetrieval
                 db_size++;
 
                 // zijn deze drie echt nodig?
-                //brand_values.Add((string)reader["brand"]);
-                //model_values.Add((string)reader["model"]);
-                //type_values.Add((string)reader["type"]);
+
+                /*
+                brand_values.Add((string)reader["brand"]);
+                model_values.Add((string)reader["model"]);
+                type_values.Add((string)reader["type"]);
+                */
 
             }
 
@@ -105,7 +114,7 @@ namespace InformationRetrieval
                 reader = query_command.ExecuteReader();
                 while (reader.Read())
                 {
-                    AddQuery("insert into idf_num values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (double)reader[s], m_dbConnection));
+                    AddQuery("insert into idf_num values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, Convert.ToDouble(reader[s]), m_dbConnection));
                     
                 }
 
@@ -205,17 +214,21 @@ namespace InformationRetrieval
             SQLiteCommand command = new SQLiteCommand("select " + category + " from autompg", db);
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read()) {
-                mean += (double)reader[category];
+                mean += Convert.ToDouble(reader[category]);
             }
             mean = mean / db_size;
 
+            command = new SQLiteCommand("select " + category + " from autompg", db);
+            reader = command.ExecuteReader();
+
             while (reader.Read()) {
-                double x = (double)reader[category];
+                double x = Convert.ToDouble(reader[category]);
                 double y = x - mean;
                 sum += y * y;
             }
 
-            double sigma = Math.Sqrt((1/db_size) * sum);
+            double sigma = (double)Math.Sqrt((1 / (double)db_size) * sum);
+            Console.WriteLine("sigma is: " + sigma);
             double h = 1.06 * sigma * Math.Pow(db_size, -0.2);
             return h;
         }
@@ -246,8 +259,7 @@ namespace InformationRetrieval
             }
 
             union = t.Count + q.Count - intersection;
-
-            return intersection/union;
+            return (double)intersection/union;
         }
 
 
