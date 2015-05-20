@@ -9,7 +9,7 @@ namespace InformationRetrieval
     class QueryHandler
     {
 
-        public static void Main()
+        public static void Functie()
         {
             string query = "";
             int k = 10;
