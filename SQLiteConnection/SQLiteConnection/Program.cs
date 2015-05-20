@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.IO;
 
-namespace SQLite
+namespace InformationRetrieval
 {
-    class SQLiteConnecter
+    class Preprocessor
     {
         static SQLiteConnection m_dbConnection;
         static SQLiteConnection meta_db;
