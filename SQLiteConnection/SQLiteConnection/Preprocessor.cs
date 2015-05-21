@@ -82,7 +82,6 @@ namespace InformationRetrieval
             AddQuery("create table idf_num (category varchar(20), value real, score real)");
 
             SQLiteCommand query_command;
-            //SQLiteCommand update_command;
             SQLiteDataReader reader;
             foreach (string s in num_columns)
             {
@@ -102,7 +101,6 @@ namespace InformationRetrieval
             AddQuery("create table idf_cat (category varchar(20), value varchar(20), score real)");
 
             SQLiteCommand query_command;
-            //SQLiteCommand update_command;
             SQLiteDataReader reader;
             foreach (string s in cat_columns)
             {
@@ -151,6 +149,7 @@ namespace InformationRetrieval
             return 0;
         }
 
+        // overloaded voor strings en doubles
         private static double IDF(string category, string value, SQLiteConnection db)
         {
             string q = "select " + category + " from autompg where " + category + "=\'" + value + "\'";
