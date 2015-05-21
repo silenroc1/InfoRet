@@ -211,18 +211,18 @@ namespace InformationRetrieval
             SQLiteCommand command = new SQLiteCommand("select * from autompg", m_dbConnection);
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read()) {
-                foreach(string s in dictmean.Keys) 
+                foreach(string s in dictmean.Keys.ToList()) 
                     dictmean[s] += Convert.ToDouble(reader[s]);
             }
 
-            foreach(string s in dictmean.Keys)
+            foreach(string s in dictmean.Keys.ToList())
                 dictmean[s] = dictmean[s] / db_size;
 
             command = new SQLiteCommand("select * from autompg", m_dbConnection);
             reader = command.ExecuteReader();
 
             while (reader.Read()) {
-                foreach (string s in dictdev.Keys)
+                foreach (string s in dictdev.Keys.ToList())
                 {
                     //double x = Convert.ToDouble(reader[category]);
                     //double y = x - mean;
@@ -234,11 +234,11 @@ namespace InformationRetrieval
             foreach (string s in dictdev.Keys)
             {
                 double sigma = (double)Math.Sqrt((1 / (double)db_size) * dictdev[s]);
-                Console.WriteLine("sigma is: " + sigma);
+                //Console.WriteLine("sigma is: " + sigma);
                 double h = 1.06 * sigma * Math.Pow(db_size, -0.2);
 
                 AddQuery("insert into h-values values ("+ s+","+h+")");
-                Console.WriteLine(h);
+                //Console.WriteLine("h-value of "+s+": "+h+"\n");
             }
         }
 
