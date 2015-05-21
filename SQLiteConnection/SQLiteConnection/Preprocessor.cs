@@ -10,8 +10,8 @@ namespace InformationRetrieval
 {
     class Preprocessor
     {
-        static SQLiteConnection m_dbConnection;
-        static SQLiteConnection meta_db;
+        public static SQLiteConnection m_dbConnection;
+        public static SQLiteConnection meta_db;
 
         static StreamWriter str = new StreamWriter("meta_dbQuerys.txt");
         
@@ -38,9 +38,12 @@ namespace InformationRetrieval
 
             // parse de workload naar een dictionary<Entry(category,value),hoeveelheid>
             //ParseWorkload();
-            
+            foreach(string num in num_columns){
+                Console.Write(num + ": ");
+                Console.WriteLine(ComputeH(num, m_dbConnection));
+            }
 
-
+            /*
             // vull idf-tables
             FillIdf_cat(meta_db);
             FillIdf_num(meta_db);
@@ -50,6 +53,7 @@ namespace InformationRetrieval
 
             if(meta_db != null) meta_db.Close();
             if(m_dbConnection != null) m_dbConnection.Close();
+             * */
             Console.Read();
         }
 
