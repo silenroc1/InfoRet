@@ -10,8 +10,8 @@ namespace InformationRetrieval
 {
     class Preprocessor
     {
-        static SQLiteConnection m_dbConnection;
-        static SQLiteConnection meta_db;
+        public static SQLiteConnection m_dbConnection;
+        public static SQLiteConnection meta_db;
 
         static StreamWriter str = new StreamWriter("meta_dbQuerys.txt");
         
@@ -54,15 +54,6 @@ namespace InformationRetrieval
             Console.Read();
         }
 
-        /*private static void StoreHValues()
-        {
-            AddQuery("create table h-value (category varchar(20), score real)");
-            foreach (string s in cat_columns)
-                AddQuery("insert into h-value values (" + s + "," + ComputeH(s, m_dbConnection) + ")");
-            foreach (string s in num_columns)
-                AddQuery("insert into h-value values (" + s + "," + ComputeH(s, m_dbConnection) + ")");
-        }*/
-
         private static void OpenMeta_db()
         {
             
@@ -96,7 +87,6 @@ namespace InformationRetrieval
             AddQuery("create table idf_num (category varchar(20), value real, score real)");
 
             SQLiteCommand query_command;
-            //SQLiteCommand update_command;
             SQLiteDataReader reader;
             foreach (string s in num_columns)
             {
@@ -116,7 +106,6 @@ namespace InformationRetrieval
             AddQuery("create table idf_cat (category varchar(20), value varchar(20), score real)");
 
             SQLiteCommand query_command;
-            //SQLiteCommand update_command;
             SQLiteDataReader reader;
             foreach (string s in cat_columns)
             {
@@ -165,6 +154,7 @@ namespace InformationRetrieval
             return 0;
         }
 
+        // overloaded voor strings en doubles
         private static double IDF(string category, string value, SQLiteConnection db)
         {
             string q = "select " + category + " from autompg where " + category + "=\'" + value + "\'";
