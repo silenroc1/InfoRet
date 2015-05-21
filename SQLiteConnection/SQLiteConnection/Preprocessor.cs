@@ -18,12 +18,6 @@ namespace InformationRetrieval
         
         static int db_size;
 
-        /* zijn deze drie echt nodig?
-        // static ISet<string> brand_values = null;
-        // static ISet<string> model_values = null;
-        // static ISet<string> type_values = null;
-        */
-
         static string[] num_columns = { "mpg", "cylinders", "displacement", "weight", "acceleration", "model_year", "origin" };
         static string[] cat_columns = { "brand", "model", "type" };
 
@@ -37,13 +31,11 @@ namespace InformationRetrieval
             OpenMeta_db();
 
             // parse de workload naar een dictionary<Entry(category,value),hoeveelheid>
-            //ParseWorkload();
-            foreach(string num in num_columns){
-                Console.Write(num + ": ");
-                Console.WriteLine(ComputeH(num, m_dbConnection));
-            }
-
-            /*
+            ParseWorkload();
+            
+            // bereken de h-waardes en sla op
+            ComputeH();
+            
             // vull idf-tables
             FillIdf_cat(meta_db);
             FillIdf_num(meta_db);
@@ -53,7 +45,7 @@ namespace InformationRetrieval
 
             if(meta_db != null) meta_db.Close();
             if(m_dbConnection != null) m_dbConnection.Close();
-             * */
+
             Console.Read();
         }
 
@@ -63,33 +55,13 @@ namespace InformationRetrieval
             SQLiteConnection.CreateFile("meta_db.sqlite");
             meta_db = new SQLiteConnection("Data Source=meta_db.sqlite;Version=3;");
             meta_db.Open();
-
-            
-
-            AddQuery("create table idf_num (category varchar(20), value real, score real)");
-            
-
             
             SQLiteCommand command = new SQLiteCommand("select * from autompg", m_dbConnection);
 
             db_size = 0;
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read())
-            {
-                db_size++;
-
-                // zijn deze drie echt nodig?
-
-                /*
-                brand_values.Add((string)reader["brand"]);
-                model_values.Add((string)reader["model"]);
-                type_values.Add((string)reader["type"]);
-                */
-
-            }
-
-           
-            
+                db_size++;            
         }
 
         private static void LoadAutompg()
@@ -107,7 +79,7 @@ namespace InformationRetrieval
 
         private static void FillIdf_num(SQLiteConnection meta_db)
         {
-            
+            AddQuery("create table idf_num (category varchar(20), value real, score real)");
 
             SQLiteCommand query_command;
             //SQLiteCommand update_command;
@@ -119,19 +91,10 @@ namespace InformationRetrieval
                 while (reader.Read())
                 {
                     AddQuery("insert into idf_num values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, Convert.ToDouble(reader[s]), m_dbConnection));
-                    
+
                 }
 
             }
-            // omdat er bij numerieke velden een oneindig aantal verschillende waarden zijn, 
-            // is het niet mogelijk de hele idf-table al te vullen.
-            // een goed alternatief lijkt me om de table te vullen met enkel de waarden die
-            // al in de oorspronkelijke table voorkomen.
-
-            // voor iedere kolom
-            // voor iedere verschillende waarde
-            // bereken de IDF-waarde
-            // store de waarde in de db
         }
 
         private static void FillIdf_cat(SQLiteConnection meta_db)
@@ -172,10 +135,20 @@ namespace InformationRetrieval
 
         private static double S(string category, double query_value, double db_value, SQLiteConnection db)
         {
-            double h = ComputeH(category, db);
+            double h = ObtainH(category);
             return
                 Math.Pow(Math.E, -0.5 * Math.Pow((db_value - query_value) / h, 2)) *
                 IDF(category, query_value, db);
+        }
+
+        private static double ObtainH(string category)
+        {
+            SQLiteCommand c = new SQLiteCommand("select score from meta_db where category = \'" + category + "\'");
+            SQLiteDataReader r = c.ExecuteReader();
+            while (r.Read())
+                return Convert.ToDouble(r["score"]);
+
+            return 0;
         }
 
         private static double IDF(string category, string value, SQLiteConnection db)
@@ -193,7 +166,7 @@ namespace InformationRetrieval
 
         private static double IDF(string category, double value, SQLiteConnection db)
         {
-            double h = ComputeH(category, db);
+            double h = ObtainH(category);
 
             double freq = 0;
             string q = "select " + category + " from autompg";
@@ -210,31 +183,49 @@ namespace InformationRetrieval
         }
 
 
-        private static double ComputeH(string category, SQLiteConnection db)
+        private static void ComputeH()
         {
-            double sum = 0;
-            double mean = 0;
+            // initialiseer dictionarys
+            Dictionary<string, double> dictmean = new Dictionary<string, double>();
+            Dictionary<string, double> dictdev = new Dictionary<string, double>();
+            foreach (string s in num_columns) { dictdev.Add(s, 0); dictmean.Add(s, 0); }
+
+
+            //double sum = 0;
+            //double mean = 0;
             
-            SQLiteCommand command = new SQLiteCommand("select " + category + " from autompg", db);
+            SQLiteCommand command = new SQLiteCommand("select * from autompg", m_dbConnection);
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read()) {
-                mean += Convert.ToDouble(reader[category]);
+                foreach(string s in dictmean.Keys.ToList()) 
+                    dictmean[s] += Convert.ToDouble(reader[s]);
             }
-            mean = mean / db_size;
 
-            command = new SQLiteCommand("select " + category + " from autompg", db);
+            foreach(string s in dictmean.Keys.ToList())
+                dictmean[s] = dictmean[s] / db_size;
+
+            command = new SQLiteCommand("select * from autompg", m_dbConnection);
             reader = command.ExecuteReader();
 
             while (reader.Read()) {
-                double x = Convert.ToDouble(reader[category]);
-                double y = x - mean;
-                sum += y * y;
+                foreach (string s in dictdev.Keys.ToList())
+                {
+                    //double x = Convert.ToDouble(reader[category]);
+                    //double y = x - mean;
+                    //sum += y * y;
+                    dictdev[s] += Math.Pow(Convert.ToDouble(reader[s]) - dictmean[s], 2);
+                }
             }
 
-            double sigma = (double)Math.Sqrt((1 / (double)db_size) * sum);
-            Console.WriteLine("sigma is: " + sigma);
-            double h = 1.06 * sigma * Math.Pow(db_size, -0.2);
-            return h;
+            foreach (string s in dictdev.Keys)
+            {
+                double sigma = (double)Math.Sqrt((1 / (double)db_size) * dictdev[s]);
+                //Console.WriteLine("sigma is: " + sigma);
+                double h = 1.06 * sigma * Math.Pow(db_size, -0.2);
+
+                AddQuery("insert into h-values values ("+ s+","+h+")");
+                //Console.WriteLine("h-value of "+s+": "+h+"\n");
+            }
         }
 
         private static int ComputeRQFMax() {

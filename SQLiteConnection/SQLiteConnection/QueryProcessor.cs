@@ -1,3 +1,4 @@
+﻿<<<<<<< HEAD
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,8 @@ namespace InformationRetrieval
      
 
         private static int IndexLookupGetNextTID(int Lk){
-            return 0;        }
+            return 0;
+        }
     }
 }
+
