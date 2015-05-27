@@ -11,15 +11,57 @@ namespace InformationRetrieval
     {
         private static SQLiteConnection m_dbConnection = Preprocessor.m_dbConnection;
 
+        private static void ITA(string[] query, int K) {
+            HashSet<int> seen = new HashSet<int>();
+            Dictionary<int, SQLiteDataReader> buffer = new Dictionary<int, SQLiteDataReader>(K);
+            int p = 0; //= amount of matches in the database with the query
+
+            while(true){//get next Lk
+                for (int k = 1; k < p;k++ ) {
+                    //Lk is the the location in the ordering that is given for the query
+                    int TIDk = IndexLookupGetNextTID(9);
+                    SQLiteDataReader Tk = TupleLookup(TIDk);
+
+                    if(stoppingCondition(Tk)){
+                        return;
+                    }
+                }
+            }
+            /*
+             ITA: Index-based Threshold Algorithm
+                Initialize Top-K buffer to empty
+                REPEAT
+                    FOR EACH k = 1 TO p DO
+                        1. TIDk = IndexLookupGetNextTID(Lk)
+                        2. Tk = TupleLookup(TIDi)
+                        3. Compute value of ranking function for Tk
+                        4. If rank of Tk is higher than the lowest ranking tuple in the Top-K buffer
+                            then update Top-K buffer
+                        5. If stopping condition has been reached then EXIT
+                    END FOR
+                UNTIL indexLookupGetNextTID(L1) …
+                      indexLookupGetNextTID(Lp)
+                are all completed 
+             */
+
+        }
+
         private static SQLiteDataReader TupleLookup(int TID){
             SQLiteCommand command = new SQLiteCommand("select * from autompg WHERE id = \'" + TID + "\'", m_dbConnection);
             SQLiteDataReader reader = command.ExecuteReader();
             reader.Read();
             return reader;
         }
-     
+
+        private static bool stoppingCondition(SQLiteDataReader Tk) {
+            //Compute the highest possible score from what need to check
+            //and compare that to the lowest score in the top-K
+            
+            return true;
+        }
 
         private static int IndexLookupGetNextTID(int Lk){
+            //gegeven een orderning op de database (op een kolom), pak de ID van de volgende entry
             return 0;
         }
     }
