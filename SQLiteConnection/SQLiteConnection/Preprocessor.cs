@@ -16,10 +16,10 @@ namespace InformationRetrieval
         static StreamWriter str = new StreamWriter("meta_dbQuerys.txt");
         
         
-        static int db_size;
+        public static int db_size;
 
-        static string[] num_columns = { "mpg", "cylinders", "displacement", "weight", "acceleration", "model_year", "origin" };
-        static string[] cat_columns = { "brand", "model", "type" };
+        public static string[] num_columns = { "mpg", "cylinders", "displacement", "weight", "acceleration", "model_year", "origin" };
+        public static string[] cat_columns = { "brand", "model", "type" };
 
         static void Main(string[] args)
         {
