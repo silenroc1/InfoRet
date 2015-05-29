@@ -20,31 +20,37 @@ namespace InformationRetrieval
             SortedDictionary<Int32, SQLiteDataReader> buffer = new SortedDictionary<Int32, SQLiteDataReader>();
             int p = 0; //= amount of matches in the database with the query
 
-            SQLiteCommand command = new SQLiteCommand("select * from autompg ORDER BY ", m_dbConnection);
+            while(seen.Count < Preprocessor.db_size){
+                foreach(string q  in query){
 
-            while(true){//there is a next Lk
-                for (int k = 1; k < p;k++ ) {
-                    //Lk is the the location in the ordering that is given for the query
-                    int TIDk = IndexLookupGetNextTID(9);
-                    SQLiteDataReader Tk = TupleLookup(TIDk);
+                    SQLiteCommand command = new SQLiteCommand("select category from table where category = " + q, m_dbConnection);
+                    SQLiteDataReader reader = command.ExecuteReader();
+                    for (int k = 0; reader.HasRows; k++) {
+                        //Lk is the the location in the ordering that is given for the query
+                        int TIDk = IndexLookupGetNextTID(reader, k);
+                        if (TIDk > 0) {
+                            SQLiteDataReader Tk = TupleLookup(TIDk);
 
-                    int score = 0;//score function
-                    if (buffer.Count < K) {
-                        buffer.Add(score, Tk);
-                    }
-                    else if(score > buffer.Keys.Last()) {
-                        buffer.Add(score, Tk);
-                        if (buffer.Count > K) {
-                            buffer.Remove(buffer.Keys.Last());
+                            int score = 0;//score function
+                            if (buffer.Count < K) {
+                                buffer.Add(score, Tk);
+                            }
+                            else if (score > buffer.Keys.Last()) {
+                                buffer.Add(score, Tk);
+                                if (buffer.Count > K) {
+                                    buffer.Remove(buffer.Keys.Last());
+                                }
+                            }
+
+
+                            if (stoppingCondition(Tk, buffer.Keys.Last())) {
+                                return buffer;
+                            }
                         }
-                    }
-
-
-                    if(stoppingCondition(Tk, buffer.Keys.Last())){
-                        return buffer;
                     }
                 }
             }
+            return buffer;
             /*
              ITA: Index-based Threshold Algorithm
                 Initialize Top-K buffer to empty
@@ -64,6 +70,7 @@ namespace InformationRetrieval
 
         }
 
+
         private static SQLiteDataReader TupleLookup(int TID){
             SQLiteCommand command = new SQLiteCommand("select * from autompg WHERE id = \'" + TID + "\'", m_dbConnection);
             SQLiteDataReader reader = command.ExecuteReader();
@@ -78,13 +85,21 @@ namespace InformationRetrieval
             return true;
         }
 
-
-        private static int IndexLookupGetNextTID(Object Lk){
-            //gegeven een orderning op de database (op een kolom), pak de ID van de volgende entry
-
-            return 0;
+        //returnt de gevraagde TID als deze nog niet eerder is opgevraagd, anders -1
+        private static int IndexLookupGetNextTID(SQLiteDataReader reader, int k){
+            int TID = reader.GetInt32(k);
+            if(seen_ids.Contains(TID)){
+                return -1;
+            }
+            seen_ids.Add(TID);
+            return TID;
         }
 
+
+
+
+        // oude functie, zie ITA
+        /*
         public static void IndexbasedThresholdAlgorithm(string[] terms) 
         {
             topkBuffer = new SortedList<double,int>();
@@ -118,6 +133,8 @@ namespace InformationRetrieval
                 }
             }         
         }
+        */
+
 
         private static int HypothethicalMax()
         {
