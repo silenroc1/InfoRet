@@ -79,7 +79,7 @@ namespace InformationRetrieval
         }
 
 
-        private static int IndexLookupGetNextTID(int Lk){
+        private static int IndexLookupGetNextTID(Object Lk){
             //gegeven een orderning op de database (op een kolom), pak de ID van de volgende entry
 
             return 0;
@@ -124,8 +124,34 @@ namespace InformationRetrieval
             throw new NotImplementedException();
         }
 
-        private static double ComputeScore(SQLiteDataReader tuple)
+        private static double ComputeScore(SQLiteDataReader tuple, string function)
         {
+            // Overlap (sectie 6.2.1)
+            if(function.Equals("overlap"))
+            {
+
+            }
+
+            // IDF (sectie 3)
+            else if (function.Equals("idf"))
+            {
+
+
+            }
+                // QFIDF (sectie 4)
+            else if (function.Equals("qfidf"))
+            {
+
+
+
+            }
+
+
+            
+
+
+
+
             double score = 0.0;
             return score;
         }
