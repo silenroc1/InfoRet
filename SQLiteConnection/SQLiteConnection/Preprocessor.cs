@@ -306,12 +306,21 @@ namespace InformationRetrieval
 
                 }
             }
-            
-            
+
+            // compute global importance
+            double total_globimport = 0;
+            foreach (int i in workload.Values)
+                total_globimport += Math.Log10(i);
+
             // plaats in meta_db
             AddQuery("create table query-frequency (category varchar(20), value varchar(20), score real, glob_import real)");
-            foreach (KeyValuePair<Entry, int> p in workload)
-                AddQuery("insert into query-frequency (" + p.Key.category + "," + p.Key.value + "," + p.Value + ")");
+            foreach (KeyValuePair<Entry, int> p in workload) {
+                AddQuery("insert into query-frequency values (\'" + p.Key.category + "\',\'" + p.Key.value + "\',\'" + p.Value + "\',\'"+ (total_globimport-Math.Log10(p.Value)) +")");
+                
+            }
+
+
+
 
             // print workload voor debugging
             foreach (KeyValuePair<Entry, int> p in workload)
