@@ -311,11 +311,12 @@ namespace InformationRetrieval
             double total_globimport = 0;
             foreach (int i in workload.Values)
                 total_globimport += Math.Log10(i);
+            int maxQF = workload.Values.Max();
 
             // plaats in meta_db
             AddQuery("create table query-frequency (category varchar(20), value varchar(20), score real, glob_import real)");
             foreach (KeyValuePair<Entry, int> p in workload) {
-                AddQuery("insert into query-frequency values (\'" + p.Key.category + "\',\'" + p.Key.value + "\',\'" + p.Value + "\',\'"+ (total_globimport-Math.Log10(p.Value)) +")");
+                AddQuery("insert into query-frequency values (\'" + p.Key.category + "\',\'" + p.Key.value + "\',\'" + (p.Value/maxQF) + "\',\'"+ (total_globimport-Math.Log10(p.Value)) +")");
                 
             }
 
