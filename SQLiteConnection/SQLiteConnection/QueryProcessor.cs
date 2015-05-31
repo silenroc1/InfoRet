@@ -29,35 +29,21 @@ namespace InformationRetrieval
             Console.Write("Preprocessing done!\n\n");
 
             Console.Write("Voer uw query in! \nVoorbeeldinputs: \nk = 6, brand = 'volkswagen';\ncylinders = 4, brand = 'ford';\n");
-            char[] splitchars = { ',' };
+            char[] splitchars = { ',',';' };
             while (true)
             {
-                string[] input = "mpg = 18, brand = \'ford\'".Split(splitchars);
+                string[] input = Console.ReadLine().Split(splitchars);
 
                 int K = ExtractK(input);
                 Dictionary<string, string> querys = ExtractQueries(input);
-                //Console.WriteLine(querys);
-                //Console.Write(K);
+                
                 List<TopKEntry> topK = ITA(querys, K);
                 foreach (TopKEntry kv in topK)
                 {
                     Console.WriteLine("Entry met id " + kv.entry["id"] + " met " + kv.score + " punten.");
                 }
-                while (true) {
-                    seen_ids = new HashSet<int>();
-                    Console.WriteLine("\nNog een query? (voor exit in om het programma te verlaten)");
-                    string split = Console.ReadLine();
-                    if(split == "exit"){
-                        break;
-                    }
-                    K = ExtractK(input);
-                    querys = ExtractQueries(input);
 
-                    topK = ITA(querys, K);
-                    foreach (TopKEntry kv in topK) {
-                        Console.WriteLine("Entry met id " + kv.entry["id"] + " met " + kv.score + " punten.");
-                    }
-                }
+                Console.WriteLine("Nog een query?\n");
             }
 
             //if (meta_db != null) meta_db.Close();
@@ -70,7 +56,7 @@ namespace InformationRetrieval
         {
             foreach (string s in input)
                 if (s[0] == 'k')
-                    return Convert.ToInt32(s[0]);
+                    return Convert.ToInt32(s.Split(new char[] {' ', '='})[1]);
 
             return 10;
         }
