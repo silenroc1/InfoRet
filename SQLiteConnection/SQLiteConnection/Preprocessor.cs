@@ -155,7 +155,7 @@ namespace InformationRetrieval
         }
 
         // overloaded voor strings en doubles
-        private static double IDF(string category, string value, SQLiteConnection db)
+        public static double IDF(string category, string value, SQLiteConnection db)
         {
             string q = "select " + category + " from autompg where " + category + "=\'" + value + "\'";
             SQLiteCommand command = new SQLiteCommand(q, db);
@@ -171,7 +171,6 @@ namespace InformationRetrieval
         private static double IDF(string category, double value, SQLiteConnection db)
         {
             double h = ObtainH(category);
-            Console.WriteLine("category is " +category+" with h: " + h);
             double freq = 0;
             string q = "select " + category + " from autompg";
             SQLiteCommand command = new SQLiteCommand(q, db);
