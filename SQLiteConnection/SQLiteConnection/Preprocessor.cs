@@ -171,7 +171,7 @@ namespace InformationRetrieval
         private static double IDF(string category, double value, SQLiteConnection db)
         {
             double h = ObtainH(category);
-            Console.WriteLine("category is " +category+" with h: " + h);
+            //Console.WriteLine("category is " +category+" with h: " + h);
             double freq = 0;
             string q = "select " + category + " from autompg";
             SQLiteCommand command = new SQLiteCommand(q, db);
@@ -315,10 +315,31 @@ namespace InformationRetrieval
 
             // plaats in meta_db
             AddQuery("create table queryfrequency (category varchar(20), value varchar(20), score real, glob_import real)");
-            foreach (KeyValuePair<Entry, int> p in workload) {
-                AddQuery("insert into queryfrequency values (\'" + p.Key.category + "\',\'" + p.Key.value + "\',\'" + ((1+p.Value)/(double)maxQF) + "\',\'"+ (total_globimport-Math.Log10(p.Value)) +"\')");
-                
+
+            // voor iedere in de originele database voorkomende waarde moet een qf-waarde worden ingevoerd.
+            foreach (string s in cat_columns.Union(num_columns))
+            {
+                SQLiteCommand c = new SQLiteCommand("select distinct " + s + " from autompg", m_dbConnection);
+                SQLiteDataReader r = c.ExecuteReader();
+
+                while (r.Read())
+                {
+                    Entry e = new Entry();
+                    if(cat_columns.Contains(s))
+                        e = new Entry(s, (string)r[s]);
+                    else
+                        e = new Entry(s, ((Convert.ToDouble(r[s])).ToString(new CultureInfo("en-US"))));
+                    if(workload.ContainsKey(e))
+                        AddQuery("insert into queryfrequency values (\'" + e.category + "\',\'" + e.value + "\',\'" + ((1 + workload[e]) / (double)maxQF) + "\',\'" + Math.Log10((1 + workload[e]) / (double)maxQF) + "\')");
+                    else
+                        AddQuery("insert into queryfrequency values (\'" + e.category + "\',\'" + e.value + "\',\'" + ((1) / (double)maxQF) + "\',\'" + Math.Log10((1) / (double)maxQF) + "\')");
+
+                }
             }
+            //foreach (KeyValuePair<Entry, int> p in workload) {
+            //    AddQuery("insert into queryfrequency values (\'" + p.Key.category + "\',\'" + p.Key.value + "\',\'" + ((1 + p.Value) / (double)maxQF) + "\',\'" + Math.Log10((1 + p.Value) / (double)maxQF) + "\')");
+                
+            //}
 
 
 
