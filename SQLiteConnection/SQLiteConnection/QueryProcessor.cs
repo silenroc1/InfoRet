@@ -18,6 +18,7 @@ namespace InformationRetrieval
 
         static void Main()
         {
+            
             Console.Write("           Data-analyse en Retrieval! \nPracticum 1:  \nDoor Cornelis Bouter & Alex Klein\n\n");
             Console.Write("Preprocessing...\n");
             Preprocessor.Init();
@@ -27,7 +28,7 @@ namespace InformationRetrieval
             char[] splitchars = { ',' };
             while (true)
             {
-                string[] input = "cylinders = 4, brand = \'ford\'".Split(splitchars);
+                string[] input = "mpg = 18, brand = \'ford\'".Split(splitchars);
 
                 int K = ExtractK(input);
                 Dictionary<string, string> querys = ExtractQueries(input);
@@ -77,9 +78,10 @@ namespace InformationRetrieval
         }
 
         private static List<TopKEntry> ITA(Dictionary<string,string> query, int K) {
-            //HashSet<int> seen = new HashSet<int>(); // seen_ids wordt constant gebruikt
             List<TopKEntry> buffer = new List<TopKEntry>();
-            //int p = 0; //= amount of matches in the database with the query
+
+            // voor de stopping-condition
+            Dictionary<string, double> currentValue = new Dictionary<string, double>();
 
             while(seen_ids.Count < Preprocessor.db_size){
                 foreach(string cat  in Preprocessor.num_columns){
@@ -92,20 +94,28 @@ namespace InformationRetrieval
                     SQLiteDataReader Tk = TupleLookup(TIDk);
                     if (Tk.Read())
                     {
+                        //sla current value op voor stopping condition
+                        if (currentValue.ContainsKey(cat))
+                            currentValue[cat] = Convert.ToDouble(Tk[cat]);
+                        else
+                            currentValue.Add(cat, Convert.ToDouble(Tk[cat]));
+                        
+                        
                         double score = ComputeScore(Tk, query);
 
                         Console.WriteLine("Store in buffer");
                         StoreInBuffer(buffer, Tk, score, K);
 
                         Console.WriteLine("Stopping cond");
-                        if (StoppingCondition(Tk, buffer[buffer.Count - 1].score, query))
+                        if (StoppingCondition(currentValue, buffer[buffer.Count - 1].score, query))
                         {
                             return buffer;
                         }
+
                     }
-                        
-                    
                 }
+                //
+                //currentValue.Clear();
             }
             return buffer;
             /*
@@ -132,6 +142,7 @@ namespace InformationRetrieval
             if (buffer.Count < K)
             {
                 buffer.Add(new TopKEntry(Tk,score));
+                buffer.Sort();
             }
             else if (score > buffer[buffer.Count - 1].score)
             {
@@ -152,12 +163,15 @@ namespace InformationRetrieval
             return reader;
         }
 
-        private static bool StoppingCondition(SQLiteDataReader Tk, double lowestScore, Dictionary<string,string> query) {
+        private static bool StoppingCondition(Dictionary<string,double> currentvalue, double lowestScore, Dictionary<string,string> query) {
             //Compute the highest possible score from what needs to be check
             //and compare that to the lowest score in the top-K
             string command = "select * from autompg where ";
-            foreach (string s in Preprocessor.num_columns)
-                command += (s + "= \'" + Tk[s] + "\' AND ");
+            foreach (string s in Preprocessor.num_columns) {
+                if (currentvalue.ContainsKey(s)) command += (s + "= \'" + currentvalue[s] + "\' AND ");
+                else // nog niet iedere categorie is langs geweest, dus nog geen hypothetical max te maken.
+                    return false;
+            }
 
             foreach (string s in Preprocessor.cat_columns)
             {
@@ -251,9 +265,9 @@ namespace InformationRetrieval
                     else
                     {
                         if (Preprocessor.cat_columns.Contains(q))
-                            return 0;
+                            score += 0;
                         else
-                            return -1; // bereken idf online
+                            score += 0; // bereken idf online
                     }
 
                 }
@@ -284,9 +298,9 @@ namespace InformationRetrieval
                     else
                     {
                         if (Preprocessor.cat_columns.Contains(q))
-                            return 0;
+                            score += 0;
                         else
-                            return -1; // bereken idf online
+                            score += 0; // bereken idf online
                     }
 
                 }
