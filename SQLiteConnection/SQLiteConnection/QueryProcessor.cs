@@ -32,7 +32,7 @@ namespace InformationRetrieval
             char[] splitchars = { ',' };
             while (true)
             {
-                string[] input = "mpg = 18, brand = \'ford\'".Split(splitchars);
+                string[] input = "k = 6, mpg = 18, brand = \'ford\'".Split(splitchars);
 
                 int K = ExtractK(input);
                 Dictionary<string, string> querys = ExtractQueries(input);
@@ -45,9 +45,9 @@ namespace InformationRetrieval
                 }
                 while (true) {
                     seen_ids = new HashSet<int>();
-                    Console.WriteLine("\nNog een query? (voor exit in om het programma te verlaten)");
-                    string split = Console.ReadLine();
-                    if(split == "exit"){
+                    Console.WriteLine("\nNog een query? (voer exit in om het programma te verlaten)");
+                    input = Console.ReadLine().Split(splitchars);
+                    if(input[0] == "exit"){
                         break;
                     }
                     K = ExtractK(input);
@@ -68,24 +68,29 @@ namespace InformationRetrieval
 
         private static int ExtractK(string[] input)
         {
-            foreach (string s in input)
-                if (s[0] == 'k')
-                    return Convert.ToInt32(s[0]);
-
+            foreach (string s in input) {
+                
+                if (s[0] == 'k' || s[0] == 'K') {
+                    char[] splitters = {'='};
+                    string[] split = s.Split(splitters);
+                    return Convert.ToInt32(split[1]);
+                }
+            }
             return 10;
         }
 
         private static Dictionary<string, string> ExtractQueries(string[] input)
         {
+
             Dictionary<string, string> querys = new Dictionary<string, string>();
             string[] split;
             char[] splitchar = { '=' };
             foreach (string s in input)
             {
                 split = s.Split(splitchar);
-                if (!split[0].Equals('K'))
-                {
-                    querys.Add(split[0].Trim(), split[1].Trim(new char[] {'\'', ' '} ));
+                Console.WriteLine(split[0]);
+                if (!(split[0][0] == 'k') || split[0][0] == 'K') {
+                    querys.Add(split[0].Trim(), split[1].Trim(new char[] { '\'', ' ' }));
 
                 }
             }
@@ -101,8 +106,8 @@ namespace InformationRetrieval
 
             while(seen_ids.Count < Preprocessor.db_size){
                 foreach(string cat  in Preprocessor.num_columns){
-                    Console.WriteLine(cat);
-                    Console.WriteLine(seen_ids.Count);
+                    //Console.WriteLine(cat);
+                    //Console.WriteLine(seen_ids.Count);
                     //Lk is the the location in the ordering that is given for the query
                     int TIDk = IndexLookupGetNextTID(cat, query);
                     seen_ids.Add(TIDk);     
@@ -119,10 +124,10 @@ namespace InformationRetrieval
                         
                         double score = ComputeScore(Tk, query);
 
-                        Console.WriteLine("Store in buffer");
+                        //Console.WriteLine("Store in buffer");
                         StoreInBuffer(buffer, Tk, score, K);
 
-                        Console.WriteLine("Stopping cond");
+                        //Console.WriteLine("Stopping cond");
                         if (StoppingCondition(currentValue, buffer[buffer.Count - 1].score, query))
                         {
                             return buffer;
@@ -184,7 +189,7 @@ namespace InformationRetrieval
             }
             char[] trim = {'A','N', 'D', ' '};
 
-            Console.WriteLine(command.TrimEnd(trim));
+            //Console.WriteLine(command.TrimEnd(trim));
             SQLiteCommand c = new SQLiteCommand(command.TrimEnd(trim), Preprocessor.m_dbConnection);
             SQLiteDataReader r = c.ExecuteReader();
             if (r.Read())
@@ -254,7 +259,7 @@ namespace InformationRetrieval
             {
                 foreach (string q in querys.Keys)
                 {
-                    Console.Write(q);
+                    //Console.Write(q);
 
                     SQLiteCommand c = Preprocessor.cat_columns.Contains(q) ?
                         new SQLiteCommand("select * from idf_cat where category = \'" + q + "\' AND value = \'" + querys[q] + "\'", Preprocessor.meta_db) :
@@ -282,7 +287,7 @@ namespace InformationRetrieval
                 // waarschijnlijk moet nog ergens de Jaccard, maar ik weet nog niet precies waar
                 foreach (string q in querys.Keys)
                 {
-                    Console.Write(q);
+                    //Console.Write(q);
                     SQLiteCommand c_idf = Preprocessor.cat_columns.Contains(q) ?
                         new SQLiteCommand("select * from idf_cat where category = \'" + q + "\' AND value = \'" + querys[q] + "\'", Preprocessor.meta_db) :
                         new SQLiteCommand("select * from idf_num where category = \'" + q + "\' AND value = \'" + querys[q] + "\'", Preprocessor.meta_db);
@@ -354,7 +359,7 @@ namespace InformationRetrieval
             SQLiteDataReader r;
             foreach(string s in Preprocessor.cat_columns) {
                 c = new SQLiteCommand("select glob_import from queryfrequency where category = \'"+s+"\' AND value = \'"+(string)entry[s]+"\'", Preprocessor.meta_db);
-                Console.WriteLine("select glob_import from queryfrequency where category = \'" + s + "\' AND value = \'" + (string)entry[s] + "\'");
+                //Console.WriteLine("select glob_import from queryfrequency where category = \'" + s + "\' AND value = \'" + (string)entry[s] + "\'");
                 r = c.ExecuteReader();
                 r.Read();
                 score += Convert.ToDouble(r["glob_import"]);
