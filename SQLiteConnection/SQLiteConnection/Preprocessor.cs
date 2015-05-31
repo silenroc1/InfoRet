@@ -13,40 +13,44 @@ namespace InformationRetrieval
         public static SQLiteConnection m_dbConnection;
         public static SQLiteConnection meta_db;
 
-        static StreamWriter str = new StreamWriter("meta_dbQuerys.txt");
-        
+        static string metadb_commands = "";
+        static StreamWriter str = new StreamWriter("metadb_commands.txt");
         
         public static int db_size;
 
         public static string[] num_columns = { "mpg", "cylinders", "displacement", "weight", "acceleration", "model_year", "origin" };
         public static string[] cat_columns = { "brand", "model", "type" };
 
-        static void Main(string[] args)
+        public static void Init()
         {
             
             // open de van autompg-db
+            //Console.WriteLine("Loadautompg");
             LoadAutompg();
-            
+
+            //Console.WriteLine("Open meta-db");
             // Open de meta_database
             OpenMeta_db();
 
+            //Console.WriteLine("Parse workload");
             // parse de workload naar een dictionary<Entry(category,value),hoeveelheid>
             ParseWorkload();
-            
+
+            //Console.WriteLine("Compute-H");
             // bereken de h-waardes en sla op
             ComputeH();
-            
+
+            //Console.Write("Fill-idf-cat");
             // vull idf-tables
             FillIdf_cat(meta_db);
+            //Console.WriteLine("& num");
             FillIdf_num(meta_db);
 
-            // parse de workload en plaats in db
-            ParseWorkload();
-
-            if(meta_db != null) meta_db.Close();
-            if(m_dbConnection != null) m_dbConnection.Close();
-
-            Console.Read();
+            
+            // niet meer nodig, querys worden in AddQuery direct uitgevoerd
+            //SQLiteCommand c = new SQLiteCommand(metadb_commands, meta_db);
+            //c.ExecuteNonQuery();
+            
         }
 
         private static void OpenMeta_db()
@@ -89,7 +93,7 @@ namespace InformationRetrieval
                 reader = query_command.ExecuteReader();
                 while (reader.Read())
                 {
-                    AddQuery("insert into idf_num values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, Convert.ToDouble(reader[s]), m_dbConnection));
+                    AddQuery("insert into idf_num values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, Convert.ToDouble(reader[s]), m_dbConnection)+"\')");
 
                 }
 
@@ -108,7 +112,7 @@ namespace InformationRetrieval
                 reader = query_command.ExecuteReader();
                 while (reader.Read())
                 {
-                    AddQuery("insert into idf_cat values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (string)reader[s], m_dbConnection));
+                    AddQuery("insert into idf_cat values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (string)reader[s], m_dbConnection)+"\')");
                     
                 }
 
@@ -139,9 +143,9 @@ namespace InformationRetrieval
                 IDF(category, query_value, db);
         }
 
-        private static double ObtainH(string category)
+        public static double ObtainH(string category)
         {
-            SQLiteCommand c = new SQLiteCommand("select score from meta_db where category = \'" + category + "\'");
+            SQLiteCommand c = new SQLiteCommand("select score from hvalues where category = \'" + category + "\'", meta_db);
             SQLiteDataReader r = c.ExecuteReader();
             while (r.Read())
                 return Convert.ToDouble(r["score"]);
@@ -158,7 +162,7 @@ namespace InformationRetrieval
             int freq = 0;
 
             // tel hoeveel matches
-            while (reader.Read()) { freq++;};
+            while (reader.Read()) { freq++;}
             
             return Math.Log10(db_size / freq);
         }
@@ -189,9 +193,7 @@ namespace InformationRetrieval
             Dictionary<string, double> dictdev = new Dictionary<string, double>();
             foreach (string s in num_columns) { dictdev.Add(s, 0); dictmean.Add(s, 0); }
 
-
-            //double sum = 0;
-            //double mean = 0;
+            AddQuery("create table hvalues (category varchar(20), score real)");
             
             SQLiteCommand command = new SQLiteCommand("select * from autompg", m_dbConnection);
             SQLiteDataReader reader = command.ExecuteReader();
@@ -222,8 +224,8 @@ namespace InformationRetrieval
                 //Console.WriteLine("sigma is: " + sigma);
                 double h = 1.06 * sigma * Math.Pow(db_size, -0.2);
 
-                AddQuery("insert into h-values values ("+ s+","+h+")");
-                //Console.WriteLine("h-value of "+s+": "+h+"\n");
+                AddQuery("insert into hvalues values (\'"+ s+"\',\'"+h+"\')");
+                //Console.WriteLine("hvalue of "+s+": "+h+"\n");
             }
         }
 
@@ -282,7 +284,7 @@ namespace InformationRetrieval
                             {
                                 // randgeval voor de station wagon
                                 if (input[i + 2].EndsWith("station")) input[i + 2] += " " + input[i + 3];
-                                TryAdd(workload, new Entry(input[i], input[i + 2]), times);
+                                TryAdd(workload, new Entry(input[i], input[i + 2].Trim(new char[] { '\''})), times);
 
                                 //i += 2; // loop verder langs wat je al hebt gezien
                             }
@@ -291,13 +293,13 @@ namespace InformationRetrieval
                                 // randgeval voor de station wagon
 
                                 if (input[i + 2].EndsWith("station")) input[i + 2] += " " + input[i + 3];
-                                Console.Write(input[i + 2] + "leidt tot:");
+                                //Console.Write(input[i + 2] + "leidt tot:");
                                 foreach (string s in input[i + 2].Split(new char[] { '(', ',', ')' }))
                                 {
-                                    Console.Write(s + " ");
-                                    TryAdd(workload, new Entry(input[i], s), times);
+                                    //Console.Write(s + " ");
+                                    TryAdd(workload, new Entry(input[i], s.Trim(new char[] {'\''}) ), times);
                                 }
-                                Console.WriteLine();                         //i += 2; // loop verder
+                                //Console.WriteLine();                         //i += 2; // loop verder
 
                             }
                         }
@@ -314,21 +316,16 @@ namespace InformationRetrieval
             int maxQF = workload.Values.Max();
 
             // plaats in meta_db
-            AddQuery("create table query-frequency (category varchar(20), value varchar(20), score real, glob_import real)");
+            AddQuery("create table queryfrequency (category varchar(20), value varchar(20), score real, glob_import real)");
             foreach (KeyValuePair<Entry, int> p in workload) {
-                AddQuery("insert into query-frequency values (\'" + p.Key.category + "\',\'" + p.Key.value + "\',\'" + ((1+p.Value)/maxQF) + "\',\'"+ (total_globimport-Math.Log10(p.Value)) +")");
+                AddQuery("insert into queryfrequency values (\'" + p.Key.category + "\',\'" + p.Key.value + "\',\'" + ((1+p.Value)/maxQF) + "\',\'"+ (total_globimport-Math.Log10(p.Value)) +"\')");
                 
             }
 
 
 
 
-            // print workload voor debugging
-            foreach (KeyValuePair<Entry, int> p in workload)
-            {
-                str.WriteLine(p.Key.category + " " + p.Key.value + ": " + p.Value);
-                str.Flush();
-            }
+           
         }
 
         private static void TryAdd(Dictionary<Entry, int> workload, Entry entry, int times) {
@@ -341,8 +338,28 @@ namespace InformationRetrieval
 
         private static void AddQuery(string command)
         {
-            str.Write(command + ";\n");
-            str.Flush();
+            try
+            {
+                // voer het ook uit
+                SQLiteCommand c = new SQLiteCommand(command, meta_db);
+                c.ExecuteNonQuery();
+
+                metadb_commands += command + ";";
+
+                // schrijf het naar een file, want die moet worden ingeleverd
+                // ook handig voor debuggen
+                str.Write(command + ";\n");
+                str.Flush();
+            }
+            catch (Exception)
+            {
+                str.Write("EXCEPTION: " + command + ";\n");
+                str.Flush();
+            }
+
+            
+
+           
 
         }    
 

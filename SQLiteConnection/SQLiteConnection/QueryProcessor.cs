@@ -4,50 +4,107 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data.SQLite;
-using System.Collections.Specialized.OrderedDictionary;
+using System.Collections.Specialized;
 
 namespace InformationRetrieval
 {
     class QueryHandler
     {
-        private static SQLiteConnection m_dbConnection = Preprocessor.m_dbConnection;
+        //private static SQLiteConnection m_dbConnection = Preprocessor.m_dbConnection; 
+        //private static SQLiteConnection meta_db = Preprocessor.meta_db;
+        // Gebruik Preprocessor.meta_db en Preprocessor.m_dbConnection!!
+
         private static ISet<int> seen_ids = new HashSet<int>();
-        private static SortedList<double,int> topkBuffer;
 
+        static void Main()
+        {
+            Console.Write("           Data-analyse en Retrieval! \nPracticum 1:  \nDoor Cornelis Bouter & Alex Klein\n\n");
+            Console.Write("Preprocessing...\n");
+            Preprocessor.Init();
+            Console.Write("Preprocessing done!\n\n");
+            
+            Console.Write("Voer uw query in! \nVoorbeeldinputs: \nk = 6, brand = 'volkswagen';\ncylinders = 4, brand = 'ford';\n");
+            char[] splitchars = { ',' };
+            while (true)
+            {
+                string[] input = "cylinders = 4, brand = \'ford\'".Split(splitchars);
 
-        private static SortedDictionary<int, SQLiteDataReader> ITA(string[] query, int K) {
-            HashSet<int> seen = new HashSet<int>();
-            SortedDictionary<Int32, SQLiteDataReader> buffer = new SortedDictionary<Int32, SQLiteDataReader>();
-            int p = 0; //= amount of matches in the database with the query
+                int K = ExtractK(input);
+                Dictionary<string, string> querys = ExtractQueries(input);
+                //Console.WriteLine(querys);
+                //Console.Write(K);
+                List<TopKEntry> topK = ITA(querys, K);
+                foreach (TopKEntry kv in topK)
+                {
+                    Console.WriteLine("Entry met id " + kv.entry["id"] + " met " + kv.score + " punten.");
+                }
 
-            while(seen.Count < Preprocessor.db_size){
-                foreach(string q  in query){
+                Console.WriteLine("\nNog een query?");
+                Console.ReadLine();
+            }
 
-                    SQLiteCommand command = new SQLiteCommand("select category from table where category = " + q, m_dbConnection);
-                    SQLiteDataReader reader = command.ExecuteReader();
-                    for (int k = 0; reader.HasRows; k++) {
-                        //Lk is the the location in the ordering that is given for the query
-                        int TIDk = IndexLookupGetNextTID(reader, k);
-                        if (TIDk > 0) {
-                            SQLiteDataReader Tk = TupleLookup(TIDk);
+            //if (meta_db != null) meta_db.Close();
+            //if (m_dbConnection != null) m_dbConnection.Close();
+            //Console.Read();
+            
+        }
 
-                            int score = 0;//score function
-                            if (buffer.Count < K) {
-                                buffer.Add(score, Tk);
-                            }
-                            else if (score > buffer.Keys.Last()) {
-                                buffer.Add(score, Tk);
-                                if (buffer.Count > K) {
-                                    buffer.Remove(buffer.Keys.Last());
-                                }
-                            }
+        private static int ExtractK(string[] input)
+        {
+            foreach (string s in input)
+                if (s[0] == 'k')
+                    return Convert.ToInt32(s[0]);
 
+            return 10;
+        }
 
-                            if (stoppingCondition(Tk, buffer.Keys.Last())) {
-                                return buffer;
-                            }
+        private static Dictionary<string, string> ExtractQueries(string[] input)
+        {
+            Dictionary<string, string> querys = new Dictionary<string, string>();
+            string[] split;
+            char[] splitchar = { '=' };
+            foreach (string s in input)
+            {
+                split = s.Split(splitchar);
+                if (!split[0].Equals('K'))
+                {
+                    querys.Add(split[0].Trim(), split[1].Trim(new char[] {'\'', ' '} ));
+
+                }
+            }
+
+            return querys;
+        }
+
+        private static List<TopKEntry> ITA(Dictionary<string,string> query, int K) {
+            //HashSet<int> seen = new HashSet<int>(); // seen_ids wordt constant gebruikt
+            List<TopKEntry> buffer = new List<TopKEntry>();
+            //int p = 0; //= amount of matches in the database with the query
+
+            while(seen_ids.Count < Preprocessor.db_size){
+                foreach(string cat  in Preprocessor.num_columns){
+                    Console.WriteLine(cat);
+                    Console.WriteLine(seen_ids.Count);
+                    //Lk is the the location in the ordering that is given for the query
+                    int TIDk = IndexLookupGetNextTID(cat, query);
+                    seen_ids.Add(TIDk);     
+               
+                    SQLiteDataReader Tk = TupleLookup(TIDk);
+                    if (Tk.Read())
+                    {
+                        double score = ComputeScore(Tk, query);
+
+                        Console.WriteLine("Store in buffer");
+                        StoreInBuffer(buffer, Tk, score, K);
+
+                        Console.WriteLine("Stopping cond");
+                        if (StoppingCondition(Tk, buffer[buffer.Count - 1].score, query))
+                        {
+                            return buffer;
                         }
                     }
+                        
+                    
                 }
             }
             return buffer;
@@ -70,70 +127,93 @@ namespace InformationRetrieval
 
         }
 
+        private static void StoreInBuffer(List<TopKEntry> buffer, SQLiteDataReader Tk, double score, int K)
+        {
+            if (buffer.Count < K)
+            {
+                buffer.Add(new TopKEntry(Tk,score));
+            }
+            else if (score > buffer[buffer.Count - 1].score)
+            {
+                buffer[buffer.Count - 1] = new TopKEntry(Tk, score);
+
+                buffer.Sort();
+            }
+
+        }
+
 
         private static SQLiteDataReader TupleLookup(int TID){
-            SQLiteCommand command = new SQLiteCommand("select * from autompg WHERE id = \'" + TID + "\'", m_dbConnection);
+            SQLiteCommand command = new SQLiteCommand("select * from autompg WHERE id = \'" + TID + "\'", Preprocessor.m_dbConnection);
             SQLiteDataReader reader = command.ExecuteReader();
-            reader.Read();
+            //reader.Read();
+            //Console.Write(Convert.ToDouble(reader["cylinders"]));
+            
             return reader;
         }
 
-        private static bool stoppingCondition(SQLiteDataReader Tk, int lowestScore) {
+        private static bool StoppingCondition(SQLiteDataReader Tk, double lowestScore, Dictionary<string,string> query) {
             //Compute the highest possible score from what needs to be check
             //and compare that to the lowest score in the top-K
-            
-            return true;
-        }
+            string command = "select * from autompg where ";
+            foreach (string s in Preprocessor.num_columns)
+                command += (s + "= \'" + Tk[s] + "\' AND ");
 
-        //returnt de gevraagde TID als deze nog niet eerder is opgevraagd, anders -1
-        private static int IndexLookupGetNextTID(SQLiteDataReader reader, int k){
-            int TID = reader.GetInt32(k);
-            if(seen_ids.Contains(TID)){
-                return -1;
+            foreach (string s in Preprocessor.cat_columns)
+            {
+                if (query.Keys.Contains(s))
+                    command += (s + "= \'" + query[s] + "\' AND ");
+                // evt een else met zoeken naar waarde met max global importance
             }
-            seen_ids.Add(TID);
-            return TID;
+            char[] trim = {'A','N', 'D', ' '};
+
+            Console.WriteLine(command.TrimEnd(trim));
+            SQLiteCommand c = new SQLiteCommand(command.TrimEnd(trim), Preprocessor.m_dbConnection);
+            SQLiteDataReader r = c.ExecuteReader();
+            if (r.Read())
+                return ComputeScore(r, query) < lowestScore;
+            else
+                return false;
         }
 
+        // TODO: optimaliseren. Sla de DataReader bv op in een Dict, zodat je ze niet steeds opnieuw hoeft aan te maken
+        //returnt de gevraagde TID als deze nog niet eerder is opgevraagd, anders -1
+        private static int IndexLookupGetNextTID(string category, Dictionary<string,string> query){
+            // zoek naar eerste id met waarde die nog niet is gezien
+            if (query.ContainsKey(category))
+            {
+                SQLiteCommand c = new SQLiteCommand("select * from autompg where " + category + "= \'" + query[category] + "\'", Preprocessor.m_dbConnection);
+                SQLiteDataReader reader = c.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    if (!seen_ids.Contains(Convert.ToInt32(reader["id"])))
+                        return Convert.ToInt32(reader["id"]);
 
 
-
-        // oude functie, zie ITA
-        /*
-        public static void IndexbasedThresholdAlgorithm(string[] terms) 
-        {
-            topkBuffer = new SortedList<double,int>();
-
-            
-            while(seen_ids.Count == Preprocessor.db_size){
-
-                foreach(string s in Preprocessor.num_columns) {
-                    int nextId = IndexLookupGetNextTID(s);
-                    seen_ids.Add(nextId);
-
-
-                    SQLiteDataReader tuple = TupleLookup(nextId);
-
-
-                    double score = ComputeScore(tuple);
-
-                    if (score > topkBuffer.Keys.Min())
-                    {
-                        topkBuffer.Remove(topkBuffer.Keys.Min());
-                        topkBuffer.Add(score, nextId);
-
-                    }
-
-                    if (HypothethicalMax() > topkBuffer.Keys.Min())
-                    {
-                        //Kap ermee
-
-
-                    }
                 }
-            }         
+            }
+
+            // zoek daarna naar eerste id zonder de gevraagde waarde
+            SQLiteCommand c2 = query.ContainsKey(category) ?
+                new SQLiteCommand("select * from autompg where " + category + "<> \'" + query[category] + "\'", Preprocessor.m_dbConnection) :
+                new SQLiteCommand("select * from autompg", Preprocessor.m_dbConnection);
+            SQLiteDataReader reader2 = c2.ExecuteReader();
+            while (reader2.Read())
+            {
+                if (!seen_ids.Contains(Convert.ToInt32(reader2["id"])))
+                    return Convert.ToInt32(reader2["id"]);
+            }
+
+            // should be unreachable
+            return -1;
+
         }
-        */
+
+
+
+
+       
 
 
         private static int HypothethicalMax()
@@ -141,39 +221,131 @@ namespace InformationRetrieval
             throw new NotImplementedException();
         }
 
-        private static double ComputeScore(SQLiteDataReader tuple, string function)
+        private static double ComputeScore(SQLiteDataReader tuple, Dictionary<string,string> querys )//, string type)
         {
-            // Overlap (sectie 6.2.1)
-            if(function.Equals("overlap"))
-            {
+            string type = "qfidf";
+            double score = 0;
 
+            // Overlap (sectie 6.2.1)
+            if(type.Equals("overlap"))
+            {
+               
             }
 
             // IDF (sectie 3)
-            else if (function.Equals("idf"))
+            else if (type.Equals("idf"))
             {
+                foreach (string q in querys.Keys)
+                {
+                    Console.Write(q);
 
+                    SQLiteCommand c = Preprocessor.cat_columns.Contains(q) ?
+                        new SQLiteCommand("select * from idf_cat where category = \'" + q + "\' AND value = \'" + querys[q] + "\'", Preprocessor.meta_db) :
+                        new SQLiteCommand("select * from idf_num where category = \'" + q + "\' AND value = \'" + querys[q] + "\'", Preprocessor.meta_db);
+                    SQLiteDataReader r = c.ExecuteReader();
+
+                    if (r.Read())
+                    {
+                        score += ComputeIDFSimilarity(q, querys[q], tuple[q], Convert.ToDouble(r["score"]));
+                    }
+                    else
+                    {
+                        if (Preprocessor.cat_columns.Contains(q))
+                            return 0;
+                        else
+                            return -1; // bereken idf online
+                    }
+
+                }
 
             }
                 // QFIDF (sectie 4)
-            else if (function.Equals("qfidf"))
+            else if (type.Equals("qfidf"))
             {
+                // waarschijnlijk moet nog ergens de Jaccard, maar ik weet nog niet precies waar
+                foreach (string q in querys.Keys)
+                {
+                    Console.Write(q);
+                    SQLiteCommand c_idf = Preprocessor.cat_columns.Contains(q) ?
+                        new SQLiteCommand("select * from idf_cat where category = \'" + q + "\' AND value = \'" + querys[q] + "\'", Preprocessor.meta_db) :
+                        new SQLiteCommand("select * from idf_num where category = \'" + q + "\' AND value = \'" + querys[q] + "\'", Preprocessor.meta_db);
+                    SQLiteCommand c_qf =
+                        new SQLiteCommand("select * from queryfrequency where category = \'" + q + "\' AND value= \'" + querys[q] + "\'", Preprocessor.meta_db);
+                    SQLiteDataReader r_idf = c_idf.ExecuteReader();
+                    SQLiteDataReader r_qf = c_qf.ExecuteReader();
 
+                    if (r_idf.Read() && r_qf.Read())
+                    {
+
+                        score += ComputeIDFSimilarity(q,querys[q],tuple[q],Convert.ToDouble(r_idf["score"])) *
+                            ComputeQFSimilarity(q,querys[q],tuple[q], Convert.ToDouble(r_qf["score"])); 
+                            
+                    }
+                    else
+                    {
+                        if (Preprocessor.cat_columns.Contains(q))
+                            return 0;
+                        else
+                            return -1; // bereken idf online
+                    }
+
+                }
 
 
             }
 
+           return score;
+        }
 
-            
+        private static double ComputeQFSimilarity(string category, string query_value, object db_value, double score)
+        {
+            if (Preprocessor.cat_columns.Contains(category))
+                return query_value.Equals((string)db_value) ? score : 0;
+            else
+                return Convert.ToDouble(query_value) == Convert.ToDouble(db_value) ? score : 0;
+        }
 
-
-
-
-            double score = 0.0;
-            return score;
+        private static double ComputeIDFSimilarity(string category, string query_value, object db_value, double score)
+        {
+            if (Preprocessor.cat_columns.Contains(category))
+                return query_value.Equals((string)db_value) ? score : 0;
+            else
+            {
+                double h = Preprocessor.ObtainH(category);
+                return
+                    Math.Pow(Math.E, -0.5 * Math.Pow((Convert.ToDouble(db_value) - Convert.ToDouble(query_value)) / h, 2)) * score;
+            }
+                
         }
 
         
+
+        
+    }
+
+    struct TopKEntry : IComparable
+    {
+        public SQLiteDataReader entry;
+        public double score;
+        public TopKEntry(SQLiteDataReader entry, double score)
+        {
+            this.entry = entry;
+            this.score = score;
+        }
+
+        public int CompareTo(object obj)
+        {
+            if (obj == null) return 1;
+
+            TopKEntry other = (TopKEntry)obj;
+            // draai om, zodat hoogste score vooraan staat
+            return other.score.CompareTo(this.score);
+           
+
+
+        }
+
+
     }
 
 
