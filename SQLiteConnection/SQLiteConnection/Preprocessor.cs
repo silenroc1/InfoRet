@@ -223,7 +223,7 @@ namespace InformationRetrieval
             {
                 double sigma = (double)Math.Sqrt((1 / (double)db_size) * dictdev[s]);
                 double h = 1.06 * sigma * Math.Pow(db_size, -0.2);
-                AddQuery("insert into hvalues values (\'" + s + "\',\'" + Convert.ToDecimal(h, new CultureInfo("en-US")) + "\')");
+                AddQuery("insert into hvalues values (\'" + s + "\',\'" + h.ToString(new CultureInfo("en-US")) + "\')");
             }
         }
 

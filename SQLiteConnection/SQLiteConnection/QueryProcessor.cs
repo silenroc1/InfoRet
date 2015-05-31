@@ -23,7 +23,7 @@ namespace InformationRetrieval
             Console.Write("Preprocessing...\n");
             Preprocessor.Init();
             Console.Write("Preprocessing done!\n\n");
-            
+
             Console.Write("Voer uw query in! \nVoorbeeldinputs: \nk = 6, brand = 'volkswagen';\ncylinders = 4, brand = 'ford';\n");
             char[] splitchars = { ',' };
             while (true)
