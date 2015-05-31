@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.IO;
+using System.Globalization;
 
 namespace InformationRetrieval
 {
@@ -170,7 +171,7 @@ namespace InformationRetrieval
         private static double IDF(string category, double value, SQLiteConnection db)
         {
             double h = ObtainH(category);
-
+            Console.WriteLine("category is " +category+" with h: " + h);
             double freq = 0;
             string q = "select " + category + " from autompg";
             SQLiteCommand command = new SQLiteCommand(q, db);
@@ -221,11 +222,8 @@ namespace InformationRetrieval
             foreach (string s in dictdev.Keys)
             {
                 double sigma = (double)Math.Sqrt((1 / (double)db_size) * dictdev[s]);
-                //Console.WriteLine("sigma is: " + sigma);
                 double h = 1.06 * sigma * Math.Pow(db_size, -0.2);
-
-                AddQuery("insert into hvalues values (\'"+ s+"\',\'"+h+"\')");
-                //Console.WriteLine("hvalue of "+s+": "+h+"\n");
+                AddQuery("insert into hvalues values (\'" + s + "\',\'" + Convert.ToDecimal(h, new CultureInfo("en-US")) + "\')");
             }
         }
 
