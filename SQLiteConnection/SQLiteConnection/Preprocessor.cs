@@ -172,6 +172,7 @@ namespace InformationRetrieval
         {
             double h = ObtainH(category);
             //Console.WriteLine("category is " +category+" with h: " + h);
+
             double freq = 0;
             string q = "select " + category + " from autompg";
             SQLiteCommand command = new SQLiteCommand(q, db);

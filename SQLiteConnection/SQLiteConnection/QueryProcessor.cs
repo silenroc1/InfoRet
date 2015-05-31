@@ -137,6 +137,10 @@ namespace InformationRetrieval
 
                 buffer.Sort();
             }
+            else if (score == buffer[buffer.Count - 1].score) {
+                //use global importance
+
+            }
 
         }
 
