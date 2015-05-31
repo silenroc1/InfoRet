@@ -316,7 +316,7 @@ namespace InformationRetrieval
             // plaats in meta_db
             AddQuery("create table queryfrequency (category varchar(20), value varchar(20), score real, glob_import real)");
             foreach (KeyValuePair<Entry, int> p in workload) {
-                AddQuery("insert into queryfrequency values (\'" + p.Key.category + "\',\'" + p.Key.value + "\',\'" + ((1+p.Value)/maxQF) + "\',\'"+ (total_globimport-Math.Log10(p.Value)) +"\')");
+                AddQuery("insert into queryfrequency values (\'" + p.Key.category + "\',\'" + p.Key.value + "\',\'" + ((1+p.Value)/(double)maxQF) + "\',\'"+ (total_globimport-Math.Log10(p.Value)) +"\')");
                 
             }
 
