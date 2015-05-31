@@ -8,7 +8,7 @@ using System.IO;
 using System.Globalization;
 using System.Collections.Specialized;
 
-
+ 
 
 namespace InformationRetrieval
 {
@@ -43,9 +43,21 @@ namespace InformationRetrieval
                 {
                     Console.WriteLine("Entry met id " + kv.entry["id"] + " met " + kv.score + " punten.");
                 }
+                while (true) {
+                    seen_ids = new HashSet<int>();
+                    Console.WriteLine("\nNog een query? (voor exit in om het programma te verlaten)");
+                    string split = Console.ReadLine();
+                    if(split == "exit"){
+                        break;
+                    }
+                    K = ExtractK(input);
+                    querys = ExtractQueries(input);
 
-                Console.WriteLine("\nNog een query?");
-                Console.ReadLine();
+                    topK = ITA(querys, K);
+                    foreach (TopKEntry kv in topK) {
+                        Console.WriteLine("Entry met id " + kv.entry["id"] + " met " + kv.score + " punten.");
+                    }
+                }
             }
 
             //if (meta_db != null) meta_db.Close();
