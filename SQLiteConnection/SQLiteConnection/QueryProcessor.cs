@@ -347,13 +347,42 @@ namespace InformationRetrieval
             this.score = score;
         }
 
+        public double GlobalImportance()
+        {
+            double score = 0;
+            SQLiteCommand c;
+            SQLiteDataReader r;
+            foreach(string s in Preprocessor.cat_columns) {
+                c = new SQLiteCommand("select glob_import from queryfrequency where category = \'"+s+"\' AND value = \'"+(string)entry[s]+"\'", Preprocessor.meta_db);
+                Console.WriteLine("select glob_import from queryfrequency where category = \'" + s + "\' AND value = \'" + (string)entry[s] + "\'");
+                r = c.ExecuteReader();
+                r.Read();
+                score += Convert.ToDouble(r["glob_import"]);
+            }
+            foreach(string s in Preprocessor.num_columns) {
+                c = new SQLiteCommand("select glob_import from queryfrequency where category = \'"+s+"\' AND value = \'"+entry[s]+"\'", Preprocessor.meta_db);
+                Console.WriteLine("select glob_import from queryfrequency where category = \'" + s + "\' AND value = \'" + entry[s] + "\'");
+
+                r = c.ExecuteReader();
+                r.Read();
+                score += Convert.ToDouble(r["glob_import"]);
+
+            }
+
+            return score;
+
+        }
+
         public int CompareTo(object obj)
         {
             if (obj == null) return 1;
 
             TopKEntry other = (TopKEntry)obj;
             // draai om, zodat hoogste score vooraan staat
-            return other.score.CompareTo(this.score);
+            if (other.score.CompareTo(this.score) != 0)
+                return other.score.CompareTo(this.score);
+            else
+                return this.GlobalImportance().CompareTo(other.GlobalImportance());
            
 
 
