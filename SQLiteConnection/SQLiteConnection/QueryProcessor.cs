@@ -332,9 +332,7 @@ namespace InformationRetrieval
                 
         }
 
-        private static double OnlineIDF() {
-            return 0;
-        }
+        
 
         
     }
