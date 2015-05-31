@@ -1,10 +1,14 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data.SQLite;
+using System.IO;
+using System.Globalization;
 using System.Collections.Specialized;
+
+
 
 namespace InformationRetrieval
 {
@@ -360,8 +364,8 @@ namespace InformationRetrieval
                 score += Convert.ToDouble(r["glob_import"]);
             }
             foreach(string s in Preprocessor.num_columns) {
-                c = new SQLiteCommand("select glob_import from queryfrequency where category = \'"+s+"\' AND value = \'"+entry[s]+"\'", Preprocessor.meta_db);
-                Console.WriteLine("select glob_import from queryfrequency where category = \'" + s + "\' AND value = \'" + entry[s] + "\'");
+                c = new SQLiteCommand("select glob_import from queryfrequency where category = \'" + s + "\' AND value = \'" + Convert.ToDouble(entry[s]).ToString(new CultureInfo("en-US")) + "\'", Preprocessor.meta_db);
+                //Console.WriteLine("select glob_import from queryfrequency where category = \'" + s + "\' AND value = \'" + entry[s].ToString(new CultureInfo("en-US")) + "\'");
 
                 r = c.ExecuteReader();
                 r.Read();

@@ -94,7 +94,7 @@ namespace InformationRetrieval
                 reader = query_command.ExecuteReader();
                 while (reader.Read())
                 {
-                    AddQuery("insert into idf_num values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, Convert.ToDouble(reader[s]), m_dbConnection)+"\')");
+                    AddQuery("insert into idf_num values (\'" + s + "\', \'" + Convert.ToDouble(reader[s]).ToString(new CultureInfo("en-US")) + "\', \'" + IDF(s, Convert.ToDouble(reader[s]), m_dbConnection).ToString(new CultureInfo("en-US")) + "\')");
 
                 }
 
@@ -113,7 +113,7 @@ namespace InformationRetrieval
                 reader = query_command.ExecuteReader();
                 while (reader.Read())
                 {
-                    AddQuery("insert into idf_cat values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (string)reader[s], m_dbConnection)+"\')");
+                    AddQuery("insert into idf_cat values (\'" + s + "\', \'" + reader[s] + "\', \'" + IDF(s, (string)reader[s], m_dbConnection).ToString(new CultureInfo("en-US")) + "\')");
                     
                 }
 
@@ -330,9 +330,9 @@ namespace InformationRetrieval
                     else
                         e = new Entry(s, ((Convert.ToDouble(r[s])).ToString(new CultureInfo("en-US"))));
                     if(workload.ContainsKey(e))
-                        AddQuery("insert into queryfrequency values (\'" + e.category + "\',\'" + e.value + "\',\'" + ((1 + workload[e]) / (double)maxQF) + "\',\'" + Math.Log10((1 + workload[e]) / (double)maxQF) + "\')");
+                        AddQuery("insert into queryfrequency values (\'" + e.category + "\',\'" + e.value + "\',\'" + ((1 + workload[e]) / (double)maxQF).ToString(new CultureInfo("en-US")) + "\',\'" + Math.Log10((1 + workload[e]) / (double)maxQF).ToString(new CultureInfo("en-US")) + "\')");
                     else
-                        AddQuery("insert into queryfrequency values (\'" + e.category + "\',\'" + e.value + "\',\'" + ((1) / (double)maxQF) + "\',\'" + Math.Log10((1) / (double)maxQF) + "\')");
+                        AddQuery("insert into queryfrequency values (\'" + e.category + "\',\'" + e.value + "\',\'" + ((1) / (double)maxQF).ToString(new CultureInfo("en-US")) + "\',\'" + Math.Log10((1) / (double)maxQF).ToString(new CultureInfo("en-US")) + "\')");
 
                 }
             }
